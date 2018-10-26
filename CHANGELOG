@@ -1,0 +1,8 @@
+	Cleanup with pbcbf
+	Change style to PSR2
+	Automatically log users in if they have an Okta session already
+	Use promises for sign-out
+	Remove templating from sign-in page
+	Log users out of Okta when they log out of Wordpress
+	Remove all hardcoded values
+	Validate OIDC tokens via /token endpoint
