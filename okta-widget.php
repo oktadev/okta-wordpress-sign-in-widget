@@ -113,16 +113,15 @@ class OktaSignIn
                 exit;
             }
         }
-        if (!isset($_GET['code'])) {
-            if (isset($_GET['id_token'])) {
-                error_log("id_token passed via GET parameter");
-                $this->logUserIntoWordPressWithIDToken($_GET['id_token'], $redirect_to);
-            }
-            $template = plugin_dir_path(__FILE__) . 'templates/sign-in-form.php';
-            load_template($template);
+
+        if (isset($_GET['log_in_from_id_token'])) {
+            $this->logUserIntoWordPressWithIDToken($_GET['log_in_from_id_token'], $redirect_to);
             exit;
-        } else {
-            // Determine who authenticated and start a WordPress session
+        }
+
+        if (isset($_GET['code'])) {
+            // If there is a code in the query string, look up the code at Okta to find out who logged in
+            // Authorization code flow
             $payload = array(
                 'grant_type' => 'authorization_code',
                 'code' => $_GET['code'],
@@ -134,11 +133,17 @@ class OktaSignIn
             $body = json_decode($response['body'], true);
             if (isset($body['id_token'])) {
                 error_log("id_token passed via body");
+                // Determine who authenticated and start a WordPress session
                 $this->logUserIntoWordPressWithIDToken($body['id_token'], $_GET['redirect_to']);
             } else {
                 die('There was an error logging in: ' . $body['error_description']);
             }
         }
+
+        // If there is no code in the query string, show the Okta sign-in widget
+        $template = plugin_dir_path(__FILE__) . 'templates/sign-in-form.php';
+        load_template($template);
+        exit;
     }
 
     private function logUserIntoWordPressWithIDToken($id_token, $redirect_to)

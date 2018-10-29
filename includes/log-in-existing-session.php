@@ -15,7 +15,7 @@ authClient.session.exists()
         scopes: ['openid', 'email']
       })
       .then(function(tokens){
-        var url_to_redirect_to = '<?php echo wp_login_url() ?>' + '?id_token=' + tokens[0].idToken;
+        var url_to_redirect_to = '<?php echo wp_login_url() ?>' + '?log_in_from_id_token=' + tokens[0].idToken;
         window.location.href = url_to_redirect_to;
       });
    }
