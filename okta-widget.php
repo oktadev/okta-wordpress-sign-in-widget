@@ -13,44 +13,56 @@
  * Domain Path: /languages
  */
 
-/*******************************/
-// Load environment variables
-
-// [jpf] FIXME: Add support for configuring this plugin via a settings page:
-//              https://codex.wordpress.org/Creating_Options_Pages
-$json = file_get_contents(plugin_dir_path(__FILE__) . "env.json");
-if ($json === false) {
-    die("could not open env.json file");
-}
-$env = json_decode($json, true);
-foreach ($env as $k => $v) {
-    define($k, $v);
-}
-/*******************************/
-
 class OktaSignIn
 {
 
     public function __construct()
     {
+        register_activation_hook( __FILE__, array( $this, 'activated' ) );
+
         // TODO: Refactor this after adding support
         //       for configuring this plugin via a settings page
-        $this->env = array(
-            'OKTA_BASE_URL' => OKTA_BASE_URL,
-            'OKTA_CLIENT_ID' => OKTA_CLIENT_ID,
-            'OKTA_CLIENT_SECRET' => OKTA_CLIENT_SECRET,
-            'OKTA_AUTH_SERVER_ID' => OKTA_AUTH_SERVER_ID
-        );
+        if(file_exists(plugin_dir_path(__FILE__) . "env.json")) {
+          /*******************************/
+          // Load environment variables
+          $json = file_get_contents(plugin_dir_path(__FILE__) . "env.json");
+          if ($json === false) {
+              die("could not open env.json file");
+          }
+          $env = json_decode($json, true);
+          foreach ($env as $k => $v) {
+              define($k, $v);
+          }
+          // [jpf] FIXME: Add support for configuring this plugin via a settings page:
+          //              https://codex.wordpress.org/Creating_Options_Pages
+          /*******************************/
 
-        $this->base_url = sprintf(
-            '%s/oauth2/%s/v1',
-            $this->env['OKTA_BASE_URL'],
-            $this->env['OKTA_AUTH_SERVER_ID']
-        );
-        
+          $this->env = array(
+              'OKTA_BASE_URL' => OKTA_BASE_URL,
+              'OKTA_CLIENT_ID' => OKTA_CLIENT_ID,
+              'OKTA_CLIENT_SECRET' => OKTA_CLIENT_SECRET,
+              'OKTA_AUTH_SERVER_ID' => OKTA_AUTH_SERVER_ID
+          );
+
+          $this->base_url = sprintf(
+              '%s/oauth2/%s/v1',
+              $this->env['OKTA_BASE_URL'],
+              $this->env['OKTA_AUTH_SERVER_ID']
+          );
+        }
+
         add_action('login_init', array($this, 'loginAction'));
         add_action('wp_head', array($this, 'addLogInExistingSessionAction'));
         add_action('init', array($this, 'startSessionAction'));
+    }
+
+    public function activated() {
+      // TODO: remove this after adding support for configuring via settings page
+      // Check for the existence of env.json
+      if (!file_exists(plugin_dir_path(__FILE__) . "env.json")) {
+        deactivate_plugins( plugin_basename( __FILE__ ) );
+        wp_die( 'Please copy env.example.json to env.json and fill in your Okta application details, then activate this plugin again.' );
+      }
     }
 
     public function startSessionAction()
@@ -80,7 +92,7 @@ class OktaSignIn
         );
         return wp_remote_post($url, $args);
     }
-                           
+
     public function loginAction()
     {
         $redirect_to = false;
@@ -88,7 +100,7 @@ class OktaSignIn
             $redirect_to = $_GET['redirect_to'];
             $_SESSION['redirect_to'] = $_GET['redirect_to'];
         }
-        
+
         if (isset($_GET["action"])) {
             if ($_GET["action"] === "logout") {
                 $user = wp_get_current_user();
@@ -155,7 +167,7 @@ class OktaSignIn
         // error_log("Got claims:");
         // error_log(print_r($claims, true));
         $_SESSION['user_id_token'] = $id_token;
-        
+
         // Find or create the WordPress user for this email address
         $user = get_user_by('email', $claims['email']);
         if (!$user) {
