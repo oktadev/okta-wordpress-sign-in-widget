@@ -18,6 +18,7 @@ class OktaSignIn
 
     public function __construct()
     {
+        // This hook is run when the user first activates the plugin
         register_activation_hook( __FILE__, array( $this, 'activated' ) );
 
         // TODO: Refactor this after adding support
@@ -51,8 +52,14 @@ class OktaSignIn
           );
         }
 
+        // https://developer.wordpress.org/reference/hooks/login_init/
         add_action('login_init', array($this, 'loginAction'));
+
+        // This runs on every pageload to insert content into the HTML <head> section
+        // https://codex.wordpress.org/Plugin_API/Action_Reference/wp_head
         add_action('wp_head', array($this, 'addLogInExistingSessionAction'));
+
+
         add_action('init', array($this, 'startSessionAction'));
     }
 
@@ -95,12 +102,14 @@ class OktaSignIn
 
     public function loginAction()
     {
+        // Support redirecting back to the page the user was on before they clicked log in
         $redirect_to = false;
         if (isset($_GET['redirect_to'])) {
             $redirect_to = $_GET['redirect_to'];
             $_SESSION['redirect_to'] = $_GET['redirect_to'];
         }
 
+        // When signing out of WordPress, tell the Okta JS library to log out of Okta as well
         if (isset($_GET["action"])) {
             if ($_GET["action"] === "logout") {
                 $user = wp_get_current_user();
@@ -148,8 +157,6 @@ class OktaSignIn
 
     private function logUserIntoWordPressWithIDToken($id_token, $redirect_to)
     {
-        unset($_SESSION['user_id_token']);
-
         /********************************************/
         // [jpf] TODO: Implement client-side id_token validation to speed up the verification process
         //             (~300ms for /introspect endpoint v. ~5ms for client-side validation)
@@ -171,7 +178,6 @@ class OktaSignIn
 
         // error_log("Got claims:");
         // error_log(print_r($claims, true));
-        $_SESSION['user_id_token'] = $id_token;
 
         // Find or create the WordPress user for this email address
         $user = get_user_by('email', $claims['email']);
@@ -182,10 +188,14 @@ class OktaSignIn
         } else {
             $user_id = $user->ID;
         }
+
+        // Actually log the user in now
         wp_set_current_user($user_id);
         wp_set_auth_cookie($user_id);
         error_log("Logging in WordPress user with ID of: " . $user_id);
+
         // See also: https://developer.wordpress.org/reference/functions/do_action/
+        // Run the wp_login actions now that the user is logged in
         do_action('wp_login', $user->user_login);
 
         if (isset($_SESSION['redirect_to'])) {
