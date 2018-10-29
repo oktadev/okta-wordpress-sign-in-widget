@@ -3,8 +3,8 @@
 /**
  * Plugin Name: Okta Sign-In Widget
  * Plugin URI: https://github.com/oktadeveloper
- * Description: Login to your site using the Okta Sign-In Widget
- * Version: 0.10.1
+ * Description: Log in to your site using the Okta Sign-In Widget
+ * Version: 0.10.2
  * Author: Aaron Parecki, Tom Smith, Nico Triballier, Joel Franusic
  * Author URI: https://developer.okta.com/
  * License: MIT
