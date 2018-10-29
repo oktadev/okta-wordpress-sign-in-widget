@@ -13,10 +13,10 @@
     function doGetWithoutPrompt() {
         //check if there is an existing Okta cookie
         var authClient = new OktaAuth({
-            url: '<?= OKTA_BASE_URL ?>',
-            clientId: '<?= OKTA_CLIENT_ID ?>',
-            redirectUri: '<?= wp_login_url() ?>',
-            issuer: '<?= OKTA_BASE_URL ?>/oauth2/<?= OKTA_AUTH_SERVER_ID ?>',
+            url: '<?php echo OKTA_BASE_URL ?>',
+            clientId: '<?php echo OKTA_CLIENT_ID ?>',
+            redirectUri: '<?php echo wp_login_url() ?>',
+            issuer: '<?php echo OKTA_BASE_URL ?>/oauth2/<?php echo OKTA_AUTH_SERVER_ID ?>',
         });
 
         authClient.token.getWithoutPrompt({
@@ -66,7 +66,7 @@
         clientId: '<?php echo OKTA_CLIENT_ID ?>',
         redirectUri: '<?php echo wp_login_url() ?>',
         authParams: {
-            issuer: '<?= OKTA_BASE_URL ?>/oauth2/<?= OKTA_AUTH_SERVER_ID ?>',
+            issuer: '<?php echo OKTA_BASE_URL ?>/oauth2/<?php echo OKTA_AUTH_SERVER_ID ?>',
             responseType: 'code',
             display: 'page',
             scopes: ['openid', 'email']
