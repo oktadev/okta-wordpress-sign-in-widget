@@ -141,9 +141,10 @@ class OktaSignIn
             $response = $this->httpPost($this->base_url . '/token', $payload);
             $body = json_decode($response['body'], true);
             if (isset($body['id_token'])) {
-                error_log("id_token passed via body");
-                // Determine who authenticated and start a WordPress session
-                $this->logUserIntoWordPressWithIDToken($body['id_token'], $_GET['redirect_to']);
+                // We don't need to verify the JWT signature since it came from the HTTP response directly
+                list($jwtHeader, $jwtPayload, $jwtSignature) = explode( '.', $body['id_token'] );
+                $claims = json_decode(base64_decode($jwtPayload), true);
+                $this->logUserIntoWordPressFromEmail($claims['email'], $_GET['redirect_to']);
             } else {
                 die('There was an error logging in: ' . $body['error_description']);
             }
@@ -179,11 +180,16 @@ class OktaSignIn
         // error_log("Got claims:");
         // error_log(print_r($claims, true));
 
+        $this->logUserIntoWordPressFromEmail($claims['email'], $redirect_to);
+    }
+
+    private function logUserIntoWordPressFromEmail($email, $redirect_to)
+    {
         // Find or create the WordPress user for this email address
-        $user = get_user_by('email', $claims['email']);
+        $user = get_user_by('email', $email);
         if (!$user) {
             $random_password = wp_generate_password($length = 64, $include_standard_special_chars = false);
-            $user_id = wp_create_user($claims['email'], $random_password, $claims['email']);
+            $user_id = wp_create_user($email, $random_password, $email);
             $user = get_user_by('id', $user_id);
         } else {
             $user_id = $user->ID;
