@@ -5,8 +5,8 @@ namespace Okta;
  * Plugin Name: Okta Sign-In Widget
  * Plugin URI: https://github.com/oktadeveloper
  * Description: Log in to your site using the Okta Sign-In Widget
- * Version: 0.10.2
- * Author: Aaron Parecki, Tom Smith, Nico Triballier, Joel Franusic
+ * Version: 0.11.0
+ * Author: Aaron Parecki, Tom Smith, Nico Triballier, Joël Franusic
  * Author URI: https://developer.okta.com/
  * License: MIT
  * License URI: http://opensource.org/licenses/MIT
@@ -120,7 +120,6 @@ class OktaSignIn
                 $user = wp_get_current_user();
 
                 wp_clear_auth_cookie();
-                error_log("Logging out WordPress user with ID of: " . $user->ID);
 
                 $template = plugin_dir_path(__FILE__) . 'templates/sign-out.php';
                 load_template($template);
