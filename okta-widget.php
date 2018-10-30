@@ -1,4 +1,5 @@
-<?php namespace Okta;
+<?php
+namespace Okta;
 
 /**
  * Plugin Name: Okta Sign-In Widget
@@ -61,6 +62,10 @@ class OktaSignIn
 
 
         add_action('init', array($this, 'startSessionAction'));
+    }
+
+    public static function generateState() {
+      return $_SESSION['okta_state'] = wp_generate_password(64, false);
     }
 
     public function activated() {
@@ -130,6 +135,12 @@ class OktaSignIn
 
         if (isset($_GET['code'])) {
             // If there is a code in the query string, look up the code at Okta to find out who logged in
+
+            // First verify that the state matches
+            if($_GET['state'] != $_SESSION['okta_state']) {
+              die('State error. Make sure cookies are enabled.');
+            }
+
             // Authorization code flow
             $payload = array(
                 'grant_type' => 'authorization_code',

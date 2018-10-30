@@ -16,8 +16,8 @@
             issuer: '<?php echo OKTA_BASE_URL ?>/oauth2/<?php echo OKTA_AUTH_SERVER_ID ?>',
             responseType: 'code',
             display: 'page',
-            scopes: ['openid', 'email']
-            // state: TODO
+            scopes: ['openid', 'email'],
+            state: '<?php echo Okta\OktaSignIn::generateState() ?>'
         }
     });
     signIn.session.get(function(res) {
