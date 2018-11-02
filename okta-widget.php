@@ -24,17 +24,10 @@ class OktaSignIn
 
         // TODO: Refactor this after adding support
         //       for configuring this plugin via a settings page
-        if(file_exists(plugin_dir_path(__FILE__) . "env.json")) {
+        if(file_exists(plugin_dir_path(__FILE__) . "env.php")) {
           /*******************************/
           // Load environment variables
-          $json = file_get_contents(plugin_dir_path(__FILE__) . "env.json");
-          if ($json === false) {
-              die("could not open env.json file");
-          }
-          $env = json_decode($json, true);
-          foreach ($env as $k => $v) {
-              define($k, $v);
-          }
+          include(plugin_dir_path(__FILE__) . "env.php");
           // [jpf] FIXME: Add support for configuring this plugin via a settings page:
           //              https://codex.wordpress.org/Creating_Options_Pages
           /*******************************/
