@@ -1,0 +1,18 @@
+version: '3.1'
+
+services:
+  wordpress:
+    image: wordpress
+    depends_on:
+      - mysql
+    ports:
+      - 8080:80
+    environment:
+      WORDPRESS_DB_PASSWORD: password
+    volumes:
+      - .:/var/www/html/wp-content/plugins/okta-wordpress-sign-in-widget
+
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: password
