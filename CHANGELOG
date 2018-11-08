@@ -6,3 +6,5 @@
 	Log users out of Okta when they log out of Wordpress
 	Remove all hardcoded values
 	Validate OIDC tokens via /token endpoint
+	Provide an admin UI for configuring the Okta org and client ID/secret
+	
