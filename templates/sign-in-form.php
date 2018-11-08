@@ -9,11 +9,11 @@
 
 <script>
     var signIn = new OktaSignIn({
-        baseUrl: '<?php echo OKTA_BASE_URL ?>',
-        clientId: '<?php echo OKTA_CLIENT_ID ?>',
+        baseUrl: '<?php echo get_option('okta-base-url') ?>',
+        clientId: '<?php echo get_option('okta-client-id') ?>',
         redirectUri: '<?php echo wp_login_url() ?>',
         authParams: {
-            issuer: '<?php echo OKTA_BASE_URL ?>/oauth2/<?php echo OKTA_AUTH_SERVER_ID ?>',
+            issuer: '<?php echo get_option('okta-base-url') ?>/oauth2/<?php echo get_option('okta-auth-server-id') ?>',
             responseType: 'code',
             display: 'page',
             scopes: ['openid', 'email'],

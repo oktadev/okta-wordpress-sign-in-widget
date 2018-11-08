@@ -19,55 +19,127 @@ class OktaSignIn
 
     public function __construct()
     {
-        // This hook is run when the user first activates the plugin
-        register_activation_hook( __FILE__, array( $this, 'activated' ) );
+        // https://codex.wordpress.org/Creating_Options_Pages
+        add_action('admin_init', array($this, 'registerSettingsAction'));
 
-        // TODO: Refactor this after adding support
-        //       for configuring this plugin via a settings page
-        if(file_exists(plugin_dir_path(__FILE__) . "env.php")) {
-          /*******************************/
-          // Load environment variables
-          include(plugin_dir_path(__FILE__) . "env.php");
-          // [jpf] FIXME: Add support for configuring this plugin via a settings page:
-          //              https://codex.wordpress.org/Creating_Options_Pages
-          /*******************************/
+        // https://codex.wordpress.org/Adding_Administration_Menus
+        add_action('admin_menu', array($this, 'optionsMenuAction'));
 
-          $this->env = array(
-              'OKTA_BASE_URL' => OKTA_BASE_URL,
-              'OKTA_CLIENT_ID' => OKTA_CLIENT_ID,
-              'OKTA_CLIENT_SECRET' => OKTA_CLIENT_SECRET,
-              'OKTA_AUTH_SERVER_ID' => OKTA_AUTH_SERVER_ID
-          );
+        $this->env = array(
+            'OKTA_BASE_URL' => get_option('okta-base-url'),
+            'OKTA_CLIENT_ID' => get_option('okta-client-id'),
+            'OKTA_CLIENT_SECRET' => get_option('okta-client-secret'),
+            'OKTA_AUTH_SERVER_ID' => get_option('okta-auth-server-id'),
+        );
 
-          $this->base_url = sprintf(
-              '%s/oauth2/%s/v1',
-              $this->env['OKTA_BASE_URL'],
-              $this->env['OKTA_AUTH_SERVER_ID']
-          );
+        // If options are defined by user
+        if (
+            !empty($this->env['OKTA_BASE_URL']) &&
+            !empty($this->env['OKTA_CLIENT_ID']) &&
+            !empty($this->env['OKTA_CLIENT_SECRET']) &&
+            !empty($this->env['OKTA_AUTH_SERVER_ID'])
+        ) {
+            $this->base_url = sprintf(
+                '%s/oauth2/%s/v1',
+                $this->env['OKTA_BASE_URL'],
+                $this->env['OKTA_AUTH_SERVER_ID']
+            );
+
+            // https://developer.wordpress.org/reference/hooks/login_init/
+            add_action('login_init', array($this, 'loginAction'));
+
+            // This runs on every pageload to insert content into the HTML <head> section
+            // https://codex.wordpress.org/Plugin_API/Action_Reference/wp_head
+            add_action('wp_head', array($this, 'addLogInExistingSessionAction'));
+
+            add_action('init', array($this, 'startSessionAction'));
         }
-
-        // https://developer.wordpress.org/reference/hooks/login_init/
-        add_action('login_init', array($this, 'loginAction'));
-
-        // This runs on every pageload to insert content into the HTML <head> section
-        // https://codex.wordpress.org/Plugin_API/Action_Reference/wp_head
-        add_action('wp_head', array($this, 'addLogInExistingSessionAction'));
-
-
-        add_action('init', array($this, 'startSessionAction'));
     }
 
     public static function generateState() {
       return $_SESSION['okta_state'] = wp_generate_password(64, false);
     }
 
-    public function activated() {
-      // TODO: remove this after adding support for configuring via settings page
-      // Check for the existence of env.json
-      if (!file_exists(plugin_dir_path(__FILE__) . "env.json")) {
-        deactivate_plugins( plugin_basename( __FILE__ ) );
-        wp_die( 'Please copy env.example.json to env.json and fill in your Okta application details, then activate this plugin again.' );
-      }
+    public function registerSettingsAction() {
+        add_settings_section(
+            'okta-sign-in-widget-options-section',
+            'Client Credentials',
+            null,
+            'okta-sign-in-widget'
+        );
+        register_setting('okta-sign-in-widget', 'okta-base-url', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-base-url',
+            'Base URL',
+            function() { $this->optionsPageTextInputAction('okta-base-url', 'text'); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+        register_setting('okta-sign-in-widget', 'okta-client-id', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-client-id',
+            'Client ID',
+            function() { $this->optionsPageTextInputAction('okta-client-id', 'text'); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+        register_setting('okta-sign-in-widget', 'okta-client-secret', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-client-secret',
+            'Client secret',
+            function() { $this->optionsPageTextInputAction('okta-client-secret', 'password'); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+        register_setting('okta-sign-in-widget', 'okta-auth-server-id', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-auth-server-id',
+            'Auth server ID',
+            function() { $this->optionsPageTextInputAction('okta-auth-server-id', 'text'); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+    }
+
+    public function optionsMenuAction() {
+        add_options_page(
+            'Okta Sign-In Widget Options',
+            'Okta Sign-In Widget',
+            'manage_options',
+            'okta-sign-in-widget',
+            array($this, 'optionsPageAction')
+        );
+    }
+
+    public function optionsPageAction() {
+        if (current_user_can('manage_options'))  {
+            include("includes/options-form.php");
+        } else {
+            wp_die( 'You do not have sufficient permissions to access this page.' );
+        }
+    }
+
+    public function optionsPageTextInputAction($option_name, $type) {
+        $option_value = get_option($option_name, '');
+        printf(
+            '<input type="%s" id="%s" name="%s" value="%s" autocomplete="off" />',
+            esc_attr($type),
+            esc_attr($option_name),
+            esc_attr($option_name),
+            esc_attr($option_value)
+        );
     }
 
     public function startSessionAction()
