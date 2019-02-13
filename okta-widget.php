@@ -63,10 +63,10 @@ class OktaSignIn
 
     public function activated() {
       // TODO: remove this after adding support for configuring via settings page
-      // Check for the existence of env.json
-      if (!file_exists(plugin_dir_path(__FILE__) . "env.json")) {
+      // Check for the existence of env.php
+      if (!file_exists(plugin_dir_path(__FILE__) . "env.php")) {
         deactivate_plugins( plugin_basename( __FILE__ ) );
-        wp_die( 'Please copy env.example.json to env.json and fill in your Okta application details, then activate this plugin again.' );
+        wp_die( 'Please copy env.example.php to env.php and fill in your Okta application details, then activate this plugin again.' );
       }
     }
 
