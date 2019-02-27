@@ -36,14 +36,21 @@ class OktaSignIn
               'OKTA_BASE_URL' => OKTA_BASE_URL,
               'OKTA_CLIENT_ID' => OKTA_CLIENT_ID,
               'OKTA_CLIENT_SECRET' => OKTA_CLIENT_SECRET,
-              'OKTA_AUTH_SERVER_ID' => OKTA_AUTH_SERVER_ID
+              'OKTA_AUTH_SERVER_ID' => (defined('OKTA_AUTH_SERVER_ID') ? OKTA_AUTH_SERVER_ID : false)
           );
 
-          $this->base_url = sprintf(
-              '%s/oauth2/%s/v1',
-              $this->env['OKTA_BASE_URL'],
-              $this->env['OKTA_AUTH_SERVER_ID']
-          );
+          if($this->env['OKTA_AUTH_SERVER_ID']) {
+                $this->base_url = sprintf(
+                    '%s/oauth2/%s/v1',
+                    $this->env['OKTA_BASE_URL'],
+                    $this->env['OKTA_AUTH_SERVER_ID']
+                );
+          } else {
+                $this->base_url = sprintf(
+                    '%s/oauth2/v1',
+                    $this->env['OKTA_BASE_URL']
+                );
+          }
         }
 
         // https://developer.wordpress.org/reference/hooks/login_init/

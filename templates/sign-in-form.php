@@ -13,7 +13,7 @@
         clientId: '<?php echo OKTA_CLIENT_ID ?>',
         redirectUri: '<?php echo wp_login_url() ?>',
         authParams: {
-            issuer: '<?php echo OKTA_BASE_URL ?>/oauth2/<?php echo OKTA_AUTH_SERVER_ID ?>',
+            issuer: '<?php echo defined('OKTA_AUTH_SERVER_ID') ? (OKTA_BASE_URL . '/oauth2/' . OKTA_AUTH_SERVER_ID) : OKTA_BASE_URL ?>',
             responseType: 'code',
             display: 'page',
             scopes: ['openid', 'email'],
