@@ -1,0 +1,29 @@
+{
+	"name": "skwid138/okta-wordpress-sign-in-widget",
+	"type": "wordpress-plugin",
+	"license": "MIT",
+	"description": "WordPress Plugin that provides authentication via Okta",
+	"homepage": "https://github.com/skwid138/okta-wordpress-sign-in-widget",
+	"authors": [
+		{
+		  "name": "Hunter Rancourt",
+		  "email": "hrancourt@capinfogroup.com",
+		  "homepage": "https://github.com/skwid138"
+		}
+	],
+	"keywords": ["wordpress", "okta"],
+	"support": {
+		"issues": "https://github.com/skwid138/okta-wordpress-sign-in-widget/issues"
+	},
+	"require": {
+		"php": ">=7.3",
+		"composer/installers": "~1.0"
+	},
+	"require-dev": {
+	},
+	"scripts": {
+		"test": ["phpcs"],
+		"post-create-project-cmd": [
+		]
+	}
+}
