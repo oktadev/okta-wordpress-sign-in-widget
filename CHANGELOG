@@ -1,8 +1,26 @@
-	Cleanup with pbcbf
-	Change style to PSR2
-	Automatically log users in if they have an Okta session already
-	Use promises for sign-out
-	Remove templating from sign-in page
-	Log users out of Okta when they log out of Wordpress
-	Remove all hardcoded values
-	Validate OIDC tokens via /token endpoint
+YYYY-MM-DD  John Doe  <johndoe@example.com>
+
+	* myfile.ext (myfunction): my changes made
+	additional changes
+
+	* myfile.ext (unrelated_change): my changes made
+	to myfile.ext but completely unrelated to the above
+
+	* anotherfile.ext (somefunction): more changes
+
+
+pre 2018-11-06		Aaron Parecki		https://github.com/aaronpk
+
+	* Cleanup with pbcbf
+	* Change style to PSR2
+	* Automatically log users in if they have an Okta session already
+	* Use promises for sign-out
+	* Remove templating from sign-in page
+	* Log users out of Okta when they log out of Wordpress
+	* Remove all hardcoded values
+	* Validate OIDC tokens via /token endpoint
+
+
+2018-11-07		Omar Chehab		https://github.com/omarchehab98
+
+	* Provide an admin UI for configuring the Okta org and client ID/secret

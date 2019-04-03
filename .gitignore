@@ -1,1 +1,13 @@
+#########################
+# Environment Variables #
+#########################
 env.php
+
+##################
+# Local OS Files #
+##################
+.DS_Store
+.idea
+.DS_Store?
+.localized
+.Spotlight-V100
