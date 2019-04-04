@@ -105,7 +105,7 @@ class OktaSignIn {
 			'Auth server ID',
 			function() { $this->optionsPageTextInputAction('okta-auth-server-id', 'text'); },
 			'okta-sign-in-widget',
-			'okta-sign-in-widget-options-section',
+			'okta-sign-in-widget-options-section'
 			);
 	}
 
