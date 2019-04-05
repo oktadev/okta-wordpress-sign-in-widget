@@ -1,5 +1,5 @@
 <div class="wrap">
-	<h1>CIG Okta Auth</h1>
+	<h1>WP Okta Auth</h1>
 
 	<form method="post" action="options.php">
 		<?php settings_fields('okta-sign-in-widget'); ?>
