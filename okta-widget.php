@@ -3,56 +3,99 @@
 namespace Okta;
 
 /**
- * Plugin Name: CIG okta auth
+ * Plugin Name: WP Okta Auth
  * Plugin URI: https://github.com/skwid138/okta-wordpress-sign-in-widget
- * Description: Log in to your site using the Okta Sign-In Widget
+ * Description: Allow users the option of authenticating via <a href="https://www.okta.com">Okta</a> instead of WordPress
  * Version: 0.0.4
- * Author: <a href="https://github.com/skwid138">Hunter Rancourt</a> and Aaron Parecki, Tom Smith, Nico Triballier, Joël Franusic
- * Author URI: https://www.capinfogroup.com/
+ * Author: <a href="https://github.com/skwid138">Hunter Rancourt</a>, <a href="https://github.com/aaronpk">Aaron Parecki</a>, Tom Smith, Nico Triballier, and Joël Franusic
+ * Author URI: https://www.capinfogroup.com/ and https://developer.okta.com/
  * License: MIT
  * License URI: http://opensource.org/licenses/MIT
  */
 
-class OktaSignIn {
+class Okta_Sign_In {
+	/* @var Okta_Sign_In $instance A reference to the single instance of this class */
+	protected static $instance;
+
+	/* @var string $base_url The domain of your okta app. 'https://dev-206470.oktapreview.com/' seems to be standard for okta developer accounts */
+	protected $base_url;
+
+	/* @var string $client_id From the Okta application Client Credentials this should match the 'Client ID' field */
+	protected $client_id;
+
+	/* @var string $client_secret From the Okta application Client Credentials this should match the 'Client secret' field */
+	protected $client_secret;
+
+	/* @var string $auth_server_id If this is not used it must be set to 'default' otherwise the JS uses it and will fail */
+	protected $auth_server_id;
+
+	/* @var string $endpoint The combination of $base_url, $auth_server_id to create the Okta endpoint */
+	protected $endpoint;
+
+	/* @var string $plugin_path The absolute path to the plugin's directory */
+	protected $plugin_path;
+
 	public function __construct() {
-		// https://codex.wordpress.org/Creating_Options_Pages
-		add_action('admin_init', [$this, 'registerSettingsAction']);
+		$this->base_url = get_option('okta-base-url', 'https://dev-206470.oktapreview.com/');
+		$this->client_id = get_option('okta-client-id');
+		$this->client_secret = get_option('okta-client-secret');
+		$this->auth_server_id = get_option('okta-auth-server-id', 'default');
+		$this->plugin_path = plugin_dir_path(__FILE__);
+	}
 
-		// https://codex.wordpress.org/Adding_Administration_Menus
-		add_action('admin_menu', [$this, 'optionsMenuAction']);
+	/**
+	 * Call this method after getting the instance
+	 */
+	public function init() {
+		$this->admin_actions();
 
-		$this->env = [
-			'OKTA_BASE_URL' => get_option('okta-base-url'),
-			'OKTA_CLIENT_ID' => get_option('okta-client-id'),
-			'OKTA_CLIENT_SECRET' => get_option('okta-client-secret'),
-			'OKTA_AUTH_SERVER_ID' => get_option('okta-auth-server-id'),
-			];
-
-		// If options are defined by user via admin settings page
-		if (!empty($this->env['OKTA_BASE_URL']) && !empty($this->env['OKTA_CLIENT_ID']) && !empty($this->env['OKTA_CLIENT_SECRET'])) {
-
-			if(!empty($this->env['OKTA_AUTH_SERVER_ID'])) {
-				$this->base_url = sprintf('%s/oauth2/%s/v1', $this->env['OKTA_BASE_URL'], $this->env['OKTA_AUTH_SERVER_ID']);
-
-			} else {
-				$this->base_url = sprintf('%s/oauth2/v1', $this->env['OKTA_BASE_URL']);
-			}
-
-			// https://developer.wordpress.org/reference/hooks/login_init/
-			add_action('login_init', [$this, 'loginAction']);
-
-			// This runs on every pageload to insert content into the HTML <head> section
-			// https://codex.wordpress.org/Plugin_API/Action_Reference/wp_head
-			add_action('wp_head', [$this, 'addLogInExistingSessionAction']);
-			add_action('init', [$this, 'startSessionAction']);
+		// Make sure these have values set
+		if ($this->base_url && $this->client_id && $this->client_secret) {
+			// Update base_url
+			$this->endpoint = "{$this->base_url}/oauth2/{$this->auth_server_id}/v1";
+			$this->public_actions();
 		}
 	}
 
-	public static function generateState() {
+	/**
+	 * Provides access to a single instance of this class.
+	 *
+	 * @return Okta_Sign_In A single instance of this class.
+	 */
+	public static function get_instance() {
+		return self::$instance ?? new self;
+	}
+
+	/**
+	 * Setup Public facing Actions
+	 */
+	protected function public_actions() {
+		add_action('login_init', [$this, 'login_action']);
+		add_action('wp_head', [$this, 'add_log_in_existing_session_action']);
+		add_action('init', [$this, 'start_session_action']);
+	}
+
+	/**
+	 * Setup Admin related actions
+	 */
+	protected function admin_actions() {
+		if (is_admin()) {
+			add_action('admin_init', [$this, 'register_settings_action']);
+			add_action('admin_menu', [$this, 'options_menu_action']);
+		}
+	}
+
+	/**
+	 * Set okta_state property of Session
+	 */
+	public static function generate_state() {
 		return $_SESSION['okta_state'] = wp_generate_password(64, false);
 	}
 
-	public function registerSettingsAction() {
+	/**
+	 * Register Plugin Settings and create the setting's fields to be used in WP admin
+	 */
+	public function register_settings_action() {
 		add_settings_section(
 			'okta-sign-in-widget-options-section',
 			'Client Credentials',
@@ -67,9 +110,10 @@ class OktaSignIn {
 		add_settings_field(
 			'okta-base-url',
 			'Base URL',
-			function() { $this->optionsPageTextInputAction('okta-base-url', 'text'); },
+			[$this, 'options_page_text_input_action'],
 			'okta-sign-in-widget',
-			'okta-sign-in-widget-options-section');
+			'okta-sign-in-widget-options-section',
+			['name' => 'okta-base-url', 'default_value' => $this->base_url, 'type' => 'text', 'description' => 'ie. https://youroktadomain.okta.com']);
 
 		register_setting(
 			'okta-sign-in-widget',
@@ -79,9 +123,10 @@ class OktaSignIn {
 		add_settings_field(
 			'okta-client-id',
 			'Client ID',
-			function() { $this->optionsPageTextInputAction('okta-client-id', 'text'); },
+			[$this, 'options_page_text_input_action'],
 			'okta-sign-in-widget',
-			'okta-sign-in-widget-options-section');
+			'okta-sign-in-widget-options-section',
+			['name' => 'okta-client-id', 'default_value' => $this->client_id, 'type' => 'text', 'description' => 'Using the new developer console open the application\'s general tab and retrieve the Client ID from the Client Credentials section']);
 
 		register_setting(
 			'okta-sign-in-widget',
@@ -91,9 +136,10 @@ class OktaSignIn {
 		add_settings_field(
 			'okta-client-secret',
 			'Client secret',
-			function() { $this->optionsPageTextInputAction('okta-client-secret', 'text'); },
+			[$this, 'options_page_text_input_action'],
 			'okta-sign-in-widget',
-			'okta-sign-in-widget-options-section');
+			'okta-sign-in-widget-options-section',
+			['name' => 'okta-client-secret', 'default_value' => $this->client_secret, 'type' => 'text', 'description' => 'Using the new developer console open the application\'s general tab and retrieve the Client secret from the Client Credentials section']);
 
 		register_setting(
 			'okta-sign-in-widget',
@@ -103,53 +149,74 @@ class OktaSignIn {
 		add_settings_field(
 			'okta-auth-server-id',
 			'Auth server ID',
-			function() { $this->optionsPageTextInputAction('okta-auth-server-id', 'text'); },
+			[$this, 'options_page_text_input_action'],
 			'okta-sign-in-widget',
-			'okta-sign-in-widget-options-section'
-			);
+			'okta-sign-in-widget-options-section',
+			['name' => 'okta-auth-server-id', 'default_value' => $this->auth_server_id, 'type' => 'text', 'description' => 'If you\'re using API Access Management, input the auth server ID; otherwise leave this set to "default"']);
 	}
 
-	public function optionsMenuAction() {
+	/**
+	 * Add Options Page to WP Admin
+	 */
+	public function options_menu_action() {
 		add_options_page(
-			'Okta Sign-In Widget Options',
-			'Okta Sign-In Widget',
+			'WP Okta Auth Options',
+			'WP Okta Auth',
 			'manage_options',
 			'okta-sign-in-widget',
-			[$this, 'optionsPageAction']);
+			[$this, 'options_page_action']);
 	}
 
-	public function optionsPageAction() {
+	/**
+	 * If admin user output options page
+	 */
+	public function options_page_action() {
 		if (current_user_can('manage_options'))  {
-			include("includes/options-form.php");
+			include("{$this->plugin_path}includes/options-form.php");
 		} else {
 			wp_die( 'You do not have sufficient permissions to access this page.' );
 		}
 	}
 
-	public function optionsPageTextInputAction($option_name, $type) {
-		$option_value = get_option($option_name, '');
-		printf('<input type="%s" id="%s" name="%s" value="%s" autocomplete="off" style="width:400px;" />',
-			esc_attr($type),
-			esc_attr($option_name),
-			esc_attr($option_name),
-			esc_attr($option_value));
+	/**
+	 * Assemble Markup for Admin Options Page
+	 *
+	 * @param string $option_name The name of the option
+	 * @param string $type The type of field the input should be
+	 */
+	public function options_page_text_input_action($args) {
+		$option_value = get_option($args['name'], $args['default_value']);
+
+		echo("<input type=\"{$args['type']}\" id=\"{$args['name']}\" name=\"{$args['name']}\" value=\"{$option_value}\" autocomplete=\"off\" style=\"width:400px;\" required />
+				<div style=\"padding: 0 5px; font-size: .7rem\">{$args['description']}</div>");
 	}
 
-	public function startSessionAction() {
+	/**
+	 *
+	 */
+	public function start_session_action() {
 		if (!session_id()) {
 			session_start();
 		}
 	}
 
-	public function addLogInExistingSessionAction() {
+	/**
+	 *
+	 */
+	public function add_log_in_existing_session_action() {
 		if (!is_user_logged_in()) {
-			$this->startSessionAction();
+			$this->start_session_action();
 			$_SESSION['redirect_to'] = $_SERVER['REQUEST_URI'];
-			include("includes/log-in-existing-session.php");
+			include("{$this->plugin_path}includes/log-in-existing-session.php");
 		}
 	}
 
-	private function httpPost($url, $body) {
+	/**
+	 * @param string $url The API URI
+	 * @param array $body Payload to be sent to API
+	 * @return array|\WP_Error
+	 */
+	private function http_post($url, $body) {
 		$args = [
 			'headers' => [
 				'Accept' => 'application/json',
@@ -161,35 +228,34 @@ class OktaSignIn {
 		return wp_remote_post($url, $args);
 	}
 
-	public function loginAction() {
+	/**
+	 * This runs on login_init hook
+	 */
+	public function login_action() {
 		// Support redirecting back to the page the user was on before they clicked log in
-		$redirect_to = false;
-
-		if (isset($_GET['redirect_to'])) {
-			$redirect_to = $_GET['redirect_to'];
+		$redirect_to = $_GET['redirect_to'] ?? false;
+		if ($redirect_to) {
 			$_SESSION['redirect_to'] = $_GET['redirect_to'];
 		}
 
 		// When signing out of WordPress, tell the Okta JS library to log out of Okta as well
-		if (isset($_GET["action"])) {
-			if ($_GET["action"] === "logout") {
-				$user = wp_get_current_user();
-				wp_clear_auth_cookie();
-				$template = plugin_dir_path(__FILE__) . 'templates/sign-out.php';
-				load_template($template);
-				exit;
-			}
-		}
-
-		if (isset($_GET['log_in_from_id_token'])) {
-			$this->logUserIntoWordPressWithIDToken($_GET['log_in_from_id_token'], $redirect_to);
+		if (isset($_GET['action']) && $_GET['action'] === 'logout') {
+			$user = wp_get_current_user();
+			wp_clear_auth_cookie();
+			$template = "{$this->plugin_path}templates/sign-out.php";
+			load_template($template);
 			exit;
 		}
 
+		if (isset($_GET['log_in_from_id_token'])) {
+			$this->log_user_into_wordpress_with_id_token($_GET['log_in_from_id_token']);
+			exit;
+		}
+
+		// If there is a code in the query string, look up the code at Okta to find out who logged in
 		if (isset($_GET['code'])) {
-			// If there is a code in the query string, look up the code at Okta to find out who logged in
 			// First verify that the state matches
-			if($_GET['state'] != $_SESSION['okta_state']) {
+			if ($_GET['state'] != $_SESSION['okta_state']) {
 				die('State error. Make sure cookies are enabled.');
 			}
 
@@ -198,19 +264,20 @@ class OktaSignIn {
 				'grant_type' => 'authorization_code',
 				'code' => $_GET['code'],
 				'redirect_uri' => wp_login_url(),
-				'client_id' => $this->env['OKTA_CLIENT_ID'],
-				'client_secret' => $this->env['OKTA_CLIENT_SECRET'],
+				'client_id' => $this->client_id,
+				'client_secret' => $this->client_secret,
 			];
 
-			$response = $this->httpPost($this->base_url . '/token', $payload);
+			$response = $this->http_post("{$this->endpoint}/token", $payload);
 			$body = json_decode($response['body'], true);
 			if (isset($body['id_token'])) {
 				// We don't need to verify the JWT signature since it came from the HTTP response directly
-				list($jwtHeader, $jwtPayload, $jwtSignature) = explode( '.', $body['id_token'] );
+				list($jwtHeader, $jwtPayload, $jwtSignature) = explode( '.', $body['id_token']);
 				$claims = json_decode(base64_decode($jwtPayload), true);
-				$this->logUserIntoWordPressFromEmail($claims['email'], $_GET['redirect_to']);
+				$this->log_user_into_wordpress_from_email($claims['email']);
+
 			} else {
-				die('There was an error logging in: ' . $body['error_description']);
+				die("There was an error logging in: {$body['error_description']}");
 			}
 		}
 
@@ -220,37 +287,46 @@ class OktaSignIn {
 		exit;
 	}
 
-	private function logUserIntoWordPressWithIDToken($id_token, $redirect_to) {
-		/********************************************/
+	/**
+	 * Get User email from Okta and log the user into WordPress
+	 *
+	 * @param string $id_token The...
+	 * @param string $redirect_to The URL the user was on before hand.
+	 */
+	private function log_user_into_wordpress_with_id_token($id_token) {
 		// [jpf] TODO: Implement client-side id_token validation to speed up the verification process
 		//             (~300ms for /introspect endpoint v. ~5ms for client-side validation)
 		$payload =  [
-			'client_id' => $this->env['OKTA_CLIENT_ID'],
-			'client_secret' => $this->env['OKTA_CLIENT_SECRET'],
+			'client_id' => $this->client_id,
+			'client_secret' => $this->client_secret,
 			'token' => $id_token,
 			'token_type_hint' => 'id_token',
 		];
 
-		$response = $this->httpPost($this->base_url . '/introspect', $payload);
+		$response = $this->http_post("{$this->endpoint}/introspect", $payload);
 		if ($response === false) {
-			die("Invalid id_token received from Okta");
+			die('Invalid id_token received from Okta');
 		}
 
 		$claims = json_decode($response['body'], true);
 		if (!$claims['active']) {
-			die("Okta reports that id_token is not active:" . $claims['error_description']);
+			die("Okta reports that id_token is not active: {$claims['error_description']}");
 		}
 
-		/********************************************/
-		// error_log("Got claims:");
-		// error_log(print_r($claims, true));
-
-		$this->logUserIntoWordPressFromEmail($claims['email'], $redirect_to);
+		$this->log_user_into_wordpress_from_email($claims['email']);
 	}
 
-	private function logUserIntoWordPressFromEmail($email, $redirect_to) {
-		// Find or create the WordPress user for this email address
+	/**
+	 * Set the current WP User via the user email returned from Okta
+	 * If the user doesn't exist in the WP DB create a user in WP
+	 *
+	 * @param string $email The user's email address
+	 * @param string $redirect_to The URL a user was on prior to login
+	 */
+	private function log_user_into_wordpress_from_email($email) {
 		$user = get_user_by('email', $email);
+
+		// Create a user in WP
 		if (!$user) {
 			$random_password = wp_generate_password($length = 64, $include_standard_special_chars = false);
 			$user_id = wp_create_user($email, $random_password, $email);
@@ -262,19 +338,18 @@ class OktaSignIn {
 		// Actually log the user in now
 		wp_set_current_user($user_id);
 		wp_set_auth_cookie($user_id);
-		error_log("Logging in WordPress user with ID of: " . $user_id);
+		error_log("Logging in WordPress user with ID of: {$user_id}");
 
-		// See also: https://developer.wordpress.org/reference/functions/do_action/
 		// Run the wp_login actions now that the user is logged in
 		do_action('wp_login', $user->user_login);
-		if (isset($_SESSION['redirect_to'])) {
-			$redirect_uri = $_SESSION['redirect_to'];
-			unset($_SESSION['redirect_to']);
-		} else {
-			$redirect_uri = home_url();
-		}
+
+		// Remove session redirect and redirect the user
+		$redirect_uri = $_SESSION['redirect_to'] ?? home_url();
+		unset($_SESSION['redirect_to']);
 		wp_redirect($redirect_uri);
 	}
 }
 
-$okta = new OktaSignIn();
+// Get single instance of class and run the init method
+$okta = Okta_Sign_In::get_instance();
+$okta->init();
