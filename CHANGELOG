@@ -6,3 +6,4 @@
 	Log users out of Okta when they log out of Wordpress
 	Remove all hardcoded values
 	Validate OIDC tokens via /token endpoint
+	Add admin menu pages in Wordpress for configuration
