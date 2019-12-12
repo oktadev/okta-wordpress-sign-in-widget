@@ -16,42 +16,13 @@ namespace Okta;
 
 class OktaSignIn
 {
+    private $OktaAdmin;
+    private $OktaOptions;
 
     public function __construct()
     {
-        // This hook is run when the user first activates the plugin
-        register_activation_hook( __FILE__, array( $this, 'activated' ) );
-
-        // TODO: Refactor this after adding support
-        //       for configuring this plugin via a settings page
-        if(file_exists(plugin_dir_path(__FILE__) . "env.php")) {
-          /*******************************/
-          // Load environment variables
-          include(plugin_dir_path(__FILE__) . "env.php");
-          // [jpf] FIXME: Add support for configuring this plugin via a settings page:
-          //              https://codex.wordpress.org/Creating_Options_Pages
-          /*******************************/
-
-          $this->env = array(
-              'OKTA_BASE_URL' => OKTA_BASE_URL,
-              'OKTA_CLIENT_ID' => OKTA_CLIENT_ID,
-              'OKTA_CLIENT_SECRET' => OKTA_CLIENT_SECRET,
-              'OKTA_AUTH_SERVER_ID' => (defined('OKTA_AUTH_SERVER_ID') ? OKTA_AUTH_SERVER_ID : false)
-          );
-
-          if($this->env['OKTA_AUTH_SERVER_ID']) {
-                $this->base_url = sprintf(
-                    '%s/oauth2/%s/v1',
-                    $this->env['OKTA_BASE_URL'],
-                    $this->env['OKTA_AUTH_SERVER_ID']
-                );
-          } else {
-                $this->base_url = sprintf(
-                    '%s/oauth2/v1',
-                    $this->env['OKTA_BASE_URL']
-                );
-          }
-        }
+        $this->setup_constants();
+        $this->includes();
 
         // https://developer.wordpress.org/reference/hooks/login_init/
         add_action('login_init', array($this, 'loginAction'));
@@ -64,17 +35,51 @@ class OktaSignIn
         add_action('init', array($this, 'startSessionAction'));
     }
 
-    public static function generateState() {
-      return $_SESSION['okta_state'] = wp_generate_password(64, false);
+    private function setup_constants(){
+        if ( ! defined( 'OKTA_PLUGIN_PATH' ) ) {
+            define( 'OKTA_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
+        }
     }
 
-    public function activated() {
-      // TODO: remove this after adding support for configuring via settings page
-      // Check for the existence of env.php
-      if (!file_exists(plugin_dir_path(__FILE__) . "env.php")) {
-        deactivate_plugins( plugin_basename( __FILE__ ) );
-        wp_die( 'Please copy env.example.php to env.php and fill in your Okta application details, then activate this plugin again.' );
-      }
+    private function includes(){
+        include OKTA_PLUGIN_PATH . 'includes/admin.php';
+
+        $this->OktaAdmin = new OktaAdmin;
+    }
+
+    private function getOktaOptions(){
+        $opts = get_option($this->OktaAdmin->optionSetName);
+        if(!empty($opts)){
+            $this->OktaOptions = $opts;
+        }
+    }
+
+    private function setupOkta(){
+        $this->env = array(
+            'OKTA_BASE_URL' => $this->OktaOptions['okta_base_url'],
+            'OKTA_CLIENT_ID' => $this->OktaOptions['okta_client_id'],
+            'OKTA_CLIENT_SECRET' => $this->OktaOptions['okta_client_secret'],
+            'OKTA_AUTH_SERVER_ID' => ($this->OktaOptions['okta_auth_server_id'] ? $this->OktaOptions['okta_auth_server_id'] : '')
+        );
+
+        if($this->env['OKTA_AUTH_SERVER_ID']) {
+                $this->base_url = sprintf(
+                    '%s/oauth2/%s/v1',
+                    $this->env['OKTA_BASE_URL'],
+                    $this->env['OKTA_AUTH_SERVER_ID']
+                );
+        } else {
+                $this->base_url = sprintf(
+                    '%s/oauth2/v1',
+                    $this->env['OKTA_BASE_URL']
+                );
+        }
+
+        define('OKTA_OPTIONS', $this->env);
+    }
+
+    public static function generateState() {
+      return $_SESSION['okta_state'] = wp_generate_password(64, false);
     }
 
     public function startSessionAction()
@@ -107,6 +112,8 @@ class OktaSignIn
 
     public function loginAction()
     {
+        $this->getOktaOptions();
+        $this->setupOkta();
         // Support redirecting back to the page the user was on before they clicked log in
         $redirect_to = false;
         if (isset($_GET['redirect_to'])) {
