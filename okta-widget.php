@@ -24,6 +24,9 @@ class OktaSignIn
         $this->setup_constants();
         $this->includes();
 
+        $this->getOktaOptions();
+        $this->setupOkta();
+
         // https://developer.wordpress.org/reference/hooks/login_init/
         add_action('login_init', array($this, 'loginAction'));
 
@@ -112,12 +115,6 @@ class OktaSignIn
 
     public function loginAction()
     {
-        $this->getOktaOptions();
-        $this->setupOkta();
-
-        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] || $_SERVER['REQUEST_METHOD'] === 'POST'){
-            return;
-        }
 
         // Support redirecting back to the page the user was on before they clicked log in
         $redirect_to = false;
@@ -170,6 +167,10 @@ class OktaSignIn
             } else {
                 die('There was an error logging in: ' . $body['error_description']);
             }
+        }
+
+        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] || $_SERVER['REQUEST_METHOD'] === 'POST'){
+            return;
         }
 
         // If there is no code in the query string, show the Okta sign-in widget

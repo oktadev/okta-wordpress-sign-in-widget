@@ -15,6 +15,15 @@
     }
 </style>
 
+<?php
+    $default = [
+        'OKTA_BASE_URL' => '',
+        'OKTA_CLIENT_ID' => '',
+        'OKTA_AUTH_SERVER_ID' => ''
+    ];
+    $options = defined('OKTA_OPTIONS') ? OKTA_OPTIONS : $default;
+?>
+
 <div id="primary" class="content-area">  
   <div id="widget-container"></div>
   <div id="wordpress-login"><a href="<?php echo Okta\OktaSignIn::getWordpressLoginUrl(); ?>">Login via Wordpress</a></div>
@@ -22,11 +31,11 @@
 
 <script>
     var oktaSignIn = new OktaSignIn({
-        baseUrl: '<?php echo OKTA_OPTIONS['OKTA_BASE_URL'] ?>',
-        clientId: '<?php echo OKTA_OPTIONS['OKTA_CLIENT_ID'] ?>',
+        baseUrl: '<?php echo $options['OKTA_BASE_URL'] ?>',
+        clientId: '<?php echo $options['OKTA_CLIENT_ID'] ?>',
         redirectUri: '<?php echo wp_login_url() ?>',
         authParams: {
-            issuer: '<?php echo !empty(OKTA_OPTIONS['OKTA_AUTH_SERVER_ID']) ? (OKTA_OPTIONS['OKTA_BASE_URL'] . '/oauth2/' . OKTA_OPTIONS['OKTA_AUTH_SERVER_ID']) : OKTA_OPTIONS['OKTA_BASE_URL'] ?>',
+            issuer: '<?php echo !empty($options['OKTA_AUTH_SERVER_ID']) ? ($options['OKTA_BASE_URL'] . '/oauth2/' . $options['OKTA_AUTH_SERVER_ID']) : $options['OKTA_BASE_URL'] ?>',
             responseType: 'code',
             display: 'page',
             state: '<?php echo Okta\OktaSignIn::generateState() ?>'
