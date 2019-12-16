@@ -115,7 +115,7 @@ class OktaSignIn
         $this->getOktaOptions();
         $this->setupOkta();
 
-        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login']){
+        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] || $_SERVER['REQUEST_METHOD'] === 'POST'){
             return;
         }
 
@@ -235,15 +235,16 @@ class OktaSignIn
         wp_redirect($redirect_uri);
     }
 
-    public function getWordpressLoginUrl(){
+    public static function getWordpressLoginUrl(){
         if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
-            $url = 'https'; 
+            $proto = 'https'; 
         } else {
-            $url = 'http';
+            $proto = 'http';
         } 
 
-        $url .= '://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'&wordpress_login=true';
-        return $url;
+        $base = $proto.'://'.$_SERVER['HTTP_HOST'];
+        $full .= $base.'/wp-login.php?wordpress_login=true';
+        return $full;
     }
 }
 
