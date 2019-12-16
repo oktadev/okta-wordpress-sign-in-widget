@@ -243,7 +243,7 @@ class OktaSignIn
         } 
 
         $base = $proto.'://'.$_SERVER['HTTP_HOST'];
-        $full .= $base.'/wp-login.php?wordpress_login=true';
+        $full = $base.'/wp-login.php?wordpress_login=true';
         return $full;
     }
 }
