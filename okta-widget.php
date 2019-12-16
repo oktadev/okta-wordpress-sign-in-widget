@@ -114,6 +114,11 @@ class OktaSignIn
     {
         $this->getOktaOptions();
         $this->setupOkta();
+
+        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login']){
+            return;
+        }
+
         // Support redirecting back to the page the user was on before they clicked log in
         $redirect_to = false;
         if (isset($_GET['redirect_to'])) {
@@ -228,6 +233,17 @@ class OktaSignIn
             $redirect_uri = home_url();
         }
         wp_redirect($redirect_uri);
+    }
+
+    public function getWordpressLoginUrl(){
+        if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+            $url = 'https'; 
+        } else {
+            $url = 'http';
+        } 
+
+        $url .= '://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'].'&wordpress_login=true';
+        return $url;
     }
 }
 

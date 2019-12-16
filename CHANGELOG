@@ -7,3 +7,4 @@
 	Remove all hardcoded values
 	Validate OIDC tokens via /token endpoint
 	Add admin menu pages in Wordpress for configuration
+	Add ability to login via Wordpress just in case.

@@ -2,8 +2,22 @@
 <script src="https://global.oktacdn.com/okta-signin-widget/3.2.0/js/okta-sign-in.min.js" type="text/javascript"></script>
 <link href="https://global.oktacdn.com/okta-signin-widget/3.2.0/css/okta-sign-in.min.css" type="text/css" rel="stylesheet"/>
 
-<div id="primary" class="content-area">
+<style type="text/css">
+    #wordpress-login{
+        text-align: center;
+    }
+
+    #wordpress-login a{
+        font-size:10px;
+        color: #999;
+        text-decoration:none;
+        font-family: montserrat,Arial,Helvetica,sans-serif;
+    }
+</style>
+
+<div id="primary" class="content-area">  
   <div id="widget-container"></div>
+  <div id="wordpress-login"><a href="<?php echo Okta\OktaSignIn::getWordpressLoginUrl(); ?>">Login via Wordpress</a></div>
 </div>
 
 <script>
@@ -20,6 +34,6 @@
     });
     oktaSignIn.renderEl(
         { el: '#widget-container' },
-        function success(res) { console.log('hi'); }
+        function success(res) { }
     );
 </script>
