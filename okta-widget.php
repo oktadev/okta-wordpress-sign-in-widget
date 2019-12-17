@@ -18,6 +18,12 @@ class OktaSignIn
 {
     private $OktaAdmin;
     private $OktaOptions;
+    public static $OktaTemplateDefaults = [
+        'okta_base_url' => '',
+        'okta_client_id' => '',
+        'okta_auth_server_id' => '',
+        'okta_wordpress_login' => 0
+    ];
 
     public function __construct()
     {
@@ -45,7 +51,7 @@ class OktaSignIn
     }
 
     private function includes(){
-        include OKTA_PLUGIN_PATH . 'includes/admin.php';
+        include OKTA_PLUGIN_PATH . 'includes/okta-admin.php';
 
         $this->OktaAdmin = new OktaAdmin;
     }
@@ -55,34 +61,28 @@ class OktaSignIn
         if(!empty($opts)){
             $this->OktaOptions = $opts;
         }
+        define('OKTA_OPTIONS', $this->OktaOptions);
     }
 
     private function setupOkta(){
-        $this->env = array(
-            'OKTA_BASE_URL' => $this->OktaOptions['okta_base_url'],
-            'OKTA_CLIENT_ID' => $this->OktaOptions['okta_client_id'],
-            'OKTA_CLIENT_SECRET' => $this->OktaOptions['okta_client_secret'],
-            'OKTA_AUTH_SERVER_ID' => ($this->OktaOptions['okta_auth_server_id'] ? $this->OktaOptions['okta_auth_server_id'] : '')
-        );
 
-        if($this->env['OKTA_AUTH_SERVER_ID']) {
-                $this->base_url = sprintf(
-                    '%s/oauth2/%s/v1',
-                    $this->env['OKTA_BASE_URL'],
-                    $this->env['OKTA_AUTH_SERVER_ID']
-                );
+        if($this->OktaOptions['okta_auth_server_id']) {
+            $this->base_url = sprintf(
+                '%s/oauth2/%s/v1',
+                $this->OktaOptions['okta_base_url'],
+                $this->OktaOptions['okta_auth_server_id']
+            );
         } else {
-                $this->base_url = sprintf(
-                    '%s/oauth2/v1',
-                    $this->env['OKTA_BASE_URL']
-                );
+            $this->base_url = sprintf(
+                '%s/oauth2/v1',
+                $this->OktaOptions['okta_base_url']
+            );
         }
 
-        define('OKTA_OPTIONS', $this->env);
     }
 
     public static function generateState() {
-      return $_SESSION['okta_state'] = wp_generate_password(64, false);
+        return $_SESSION['okta_state'] = wp_generate_password(64, false);
     }
 
     public function startSessionAction()
@@ -97,7 +97,7 @@ class OktaSignIn
         if (!is_user_logged_in()) {
             $this->startSessionAction();
             $_SESSION['redirect_to'] = $_SERVER['REQUEST_URI'];
-            include("includes/log-in-existing-session.php");
+            include("templates/log-in-existing-session.php");
         }
     }
 
@@ -125,15 +125,7 @@ class OktaSignIn
 
         // When signing out of WordPress, tell the Okta JS library to log out of Okta as well
         if (isset($_GET["action"])) {
-            if ($_GET["action"] === "logout") {
-                $user = wp_get_current_user();
-
-                wp_clear_auth_cookie();
-
-                $template = plugin_dir_path(__FILE__) . 'templates/sign-out.php';
-                load_template($template);
-                exit;
-            }
+            $this->logUserOutOfOkta($_GET['action']);
         }
 
         if (isset($_GET['log_in_from_id_token'])) {
@@ -142,41 +134,72 @@ class OktaSignIn
         }
 
         if (isset($_GET['code'])) {
-            // If there is a code in the query string, look up the code at Okta to find out who logged in
-
-            // First verify that the state matches
-            if($_GET['state'] != $_SESSION['okta_state']) {
-              die('State error. Make sure cookies are enabled.');
-            }
-
-            // Authorization code flow
-            $payload = array(
-                'grant_type' => 'authorization_code',
-                'code' => $_GET['code'],
-                'redirect_uri' => wp_login_url(),
-                'client_id' => $this->env['OKTA_CLIENT_ID'],
-                'client_secret' => $this->env['OKTA_CLIENT_SECRET'],
-            );
-            $response = $this->httpPost($this->base_url . '/token', $payload);
-            $body = json_decode($response['body'], true);
-            if (isset($body['id_token'])) {
-                // We don't need to verify the JWT signature since it came from the HTTP response directly
-                list($jwtHeader, $jwtPayload, $jwtSignature) = explode( '.', $body['id_token'] );
-                $claims = json_decode(base64_decode($jwtPayload), true);
-                $this->logUserIntoWordPressFromEmail($claims['email'], $_GET['redirect_to']);
-            } else {
-                die('There was an error logging in: ' . $body['error_description']);
-            }
+            $this->oktaCheckToken($_GET['code']);
         }
 
-        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] || $_SERVER['REQUEST_METHOD'] === 'POST'){
+        if($this->isWordpressLoginAvailable()){
             return;
         }
 
         // If there is no code in the query string, show the Okta sign-in widget
-        $template = plugin_dir_path(__FILE__) . 'templates/sign-in-form.php';
+        $template = OKTA_PLUGIN_PATH . 'templates/sign-in-form.php';
         load_template($template);
         exit;
+    }
+
+    private function oktaCheckToken($code){
+        // If there is a code in the query string, look up the code at Okta to find out who logged in
+
+        // First verify that the state matches
+        if($_GET['state'] != $_SESSION['okta_state']) {
+            die('State error. Make sure cookies are enabled.');
+        }
+
+        // Authorization code flow
+        $payload = array(
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+            'redirect_uri' => wp_login_url(),
+            'client_id' => $this->OktaOptions['okta_client_id'],
+            'client_secret' => $this->OktaOptions['okta_client_secret'],
+        );
+        $response = $this->httpPost($this->base_url . '/token', $payload);
+        $body = json_decode($response['body'], true);
+        if (isset($body['id_token'])) {
+            // We don't need to verify the JWT signature since it came from the HTTP response directly
+            list($jwtHeader, $jwtPayload, $jwtSignature) = explode( '.', $body['id_token'] );
+            $claims = json_decode(base64_decode($jwtPayload), true);
+            
+            $this->logUserIntoWordPressFromEmail($claims['email'], $_GET['redirect_to']);
+        } else {
+            die('There was an error logging in: ' . $body['error_description']);
+        }
+    }
+
+    private function isWordpressLoginAvailable(){
+        $available = false;
+
+        if(!$this->OktaOptions['okta_wordpress_login']){
+            return $available;
+        }
+
+        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] || $_SERVER['REQUEST_METHOD'] === 'POST'){
+            $available = true;
+        }
+
+        return $available;
+    }
+
+    private function logUserOutOfOkta($action){
+        if ($action === "logout") {
+            $user = wp_get_current_user();
+
+            wp_clear_auth_cookie();
+
+            $template = OKTA_PLUGIN_PATH . 'templates/sign-out.php';
+            load_template($template);
+            exit;
+        }
     }
 
     private function logUserIntoWordPressWithIDToken($id_token, $redirect_to)
@@ -185,8 +208,8 @@ class OktaSignIn
         // [jpf] TODO: Implement client-side id_token validation to speed up the verification process
         //             (~300ms for /introspect endpoint v. ~5ms for client-side validation)
         $payload = array(
-            'client_id' => $this->env['OKTA_CLIENT_ID'],
-            'client_secret' => $this->env['OKTA_CLIENT_SECRET'],
+            'client_id' => $this->OktaOptions['okta_client_id'],
+            'client_secret' => $this->OktaOptions['okta_client_secret'],
             'token' => $id_token,
             'token_type_hint' => 'id_token'
         );
@@ -225,7 +248,7 @@ class OktaSignIn
 
         // See also: https://developer.wordpress.org/reference/functions/do_action/
         // Run the wp_login actions now that the user is logged in
-        do_action('wp_login', $user->user_login);
+        do_action('wp_login', $user->user_login, $user);
 
         if (isset($_SESSION['redirect_to'])) {
             $redirect_uri = $_SESSION['redirect_to'];

@@ -1,25 +1,20 @@
 <script src="https://ok1static.oktacdn.com/assets/js/sdk/okta-auth-js/2.0.1/okta-auth-js.min.js" type="text/javascript"></script>
 
 <?php
-    $default = [
-        'OKTA_BASE_URL' => '',
-        'OKTA_CLIENT_ID' => '',
-        'OKTA_AUTH_SERVER_ID' => ''
-    ];
-    $options = defined('OKTA_OPTIONS') ? OKTA_OPTIONS : $default;
+    $options = defined('OKTA_OPTIONS') ? OKTA_OPTIONS : Okta\OktaSignIn::$OktaTemplateDefaults;
 ?>
 
 <script>
-    var authClient = new OktaAuth({
-      url: '<?php echo $options['OKTA_BASE_URL'] ?>',
-      clientId: '<?php echo $options['OKTA_CLIENT_ID'] ?>',
-      issuer: '<?php echo $options['OKTA_BASE_URL'] ?>/oauth2/<?php echo $options['OKTA_AUTH_SERVER_ID'] ?>',
-    });
+  var authClient = new OktaAuth({
+    url: '<?php echo $options['okta_base_url'] ?>',
+    clientId: '<?php echo $options['okta_client_id'] ?>',
+    issuer: '<?php echo $options['okta_base_url'] ?>/oauth2/<?php echo $options['okta_auth_server_id'] ?>',
+  });
 
-    authClient.signOut()
-    .then(function() {
-      window.location = '<?php echo home_url() ?>';
-    }).catch(function(){
-      window.location = '<?php echo home_url() ?>';
-    });
+  authClient.signOut()
+  .then(function() {
+    window.location = '<?php echo home_url() ?>';
+  }).catch(function(){
+    window.location = '<?php echo home_url() ?>';
+  });
 </script>

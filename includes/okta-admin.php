@@ -3,7 +3,7 @@ namespace Okta;
 
 class OktaAdmin{
     public $optionSetName = 'okta_options';
-    public $fields = ['okta_base_url', 'okta_client_id', 'okta_client_secret', 'okta_auth_server_id'];
+    public $fields = ['okta_base_url', 'okta_client_id', 'okta_client_secret', 'okta_auth_server_id', 'okta_wordpress_login'];
 
     public function __construct(){
         add_action('admin_init', [$this, 'admin_init']);
@@ -20,6 +20,7 @@ class OktaAdmin{
         $valid['okta_client_id'] = $input['okta_client_id'];
         $valid['okta_client_secret'] = $input['okta_client_secret'];
         $valid['okta_auth_server_id'] = $input['okta_auth_server_id'];
+        $valid['okta_wordpress_login'] = $input['okta_wordpress_login'] ?? 0;
         return $valid;
     }
 
@@ -38,7 +39,9 @@ class OktaAdmin{
             $updated = true;
             $values = [];
             foreach($this->fields as $field){
-                $values[$field] = $_POST[$field];
+                if(isset($_POST[$field])){
+                    $values[$field] = $_POST[$field];
+                }
             }
             update_option($this->optionSetName, $values);
         }
@@ -87,6 +90,15 @@ class OktaAdmin{
                                 <td>
                                     <input name="okta_auth_server_id" type="text" placeholder="ex: default" id="okta_auth_server_id" value="<?php echo $data['okta_auth_server_id']; ?>" />
                                     <p class="description">If you're using API Access Management, define the auth server ID.</p>
+                                </td>
+                            </tr>
+                            <tr class="form-field">
+                                <th scope="row">
+                                    <label for="okta_wordpress_login">Show Wordpress Login?</label>
+                                </th>
+                                <td>
+                                    <input name="okta_wordpress_login" type="checkbox" id="okta_wordpress_login" value="1" <?php if($data['okta_wordpress_login']) echo 'checked=checked' ?>/>
+                                    <p class="description">This will remove the ability to sign in directly with Wordpress users.</p>
                                 </td>
                             </tr>
                         </tbody>
