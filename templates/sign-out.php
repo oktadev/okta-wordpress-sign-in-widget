@@ -3,7 +3,7 @@
     var authClient = new OktaAuth({
       url: '<?php echo OKTA_BASE_URL ?>',
       clientId: '<?php echo OKTA_CLIENT_ID ?>',
-      issuer: '<?php echo OKTA_BASE_URL ?>/oauth2/<?php echo OKTA_AUTH_SERVER_ID ?>',
+      issuer: '<?php echo OKTA_BASE_URL ?>/oauth2/<?php if(defined('OKTA_AUTH_SERVER_ID')) echo OKTA_AUTH_SERVER_ID ?>',
     });
 
     authClient.signOut()
