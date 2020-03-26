@@ -212,7 +212,7 @@ class OktaSignIn
 
         // See also: https://developer.wordpress.org/reference/functions/do_action/
         // Run the wp_login actions now that the user is logged in
-        do_action('wp_login', $user->user_login);
+        do_action('wp_login', $user->user_login, $user);
 
         if (isset($_SESSION['redirect_to'])) {
             $redirect_uri = $_SESSION['redirect_to'];
