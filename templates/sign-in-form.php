@@ -1,7 +1,6 @@
 <!-- load the Okta sign-in widget-->
-<script src="https://ok1static.oktacdn.com/assets/js/sdk/okta-signin-widget/2.6.0/js/okta-sign-in.min.js" type="text/javascript"></script>
-<link href="https://ok1static.oktacdn.com/assets/js/sdk/okta-signin-widget/2.6.0/css/okta-sign-in.min.css" type="text/css" rel="stylesheet"/>
-<link href="https://ok1static.oktacdn.com/assets/js/sdk/okta-signin-widget/2.6.0/css/okta-theme.css" type="text/css" rel="stylesheet"/>
+<script src="https://global.oktacdn.com/okta-signin-widget/4.1.3/js/okta-sign-in.min.js" type="text/javascript"></script>
+<link href="https://global.oktacdn.com/okta-signin-widget/4.1.3/css/okta-sign-in.min.css" type="text/css" rel="stylesheet"/>
 
 <div id="primary" class="content-area">
   <div id="widget-container"></div>
@@ -10,21 +9,26 @@
 <script>
     var signIn = new OktaSignIn({
         baseUrl: '<?php echo OKTA_BASE_URL ?>',
-        clientId: '<?php echo OKTA_CLIENT_ID ?>',
         redirectUri: '<?php echo wp_login_url() ?>',
+        el: '#widget-container',
         authParams: {
-            issuer: '<?php echo defined('OKTA_AUTH_SERVER_ID') ? (OKTA_BASE_URL . '/oauth2/' . OKTA_AUTH_SERVER_ID) : OKTA_BASE_URL ?>',
-            responseType: 'code',
             display: 'page',
-            scopes: ['openid', 'email'],
-            state: '<?php echo Okta\OktaSignIn::generateState() ?>'
         }
     });
-    signIn.session.get(function(res) {
-        signIn.renderEl({
-                el: '#widget-container'
-            },
-            function success(res) {}
-        );
-    });
+    if(signIn.hasTokensInUrl()) {
+        // Grab the auth code from the URL and exchange it for an ID token
+        signIn.authClient.token.parseFromUrl()
+            .then(function (res) {
+                // Redirect back here with the ID token in the URL. The backend will validate it and log the user in.
+                window.location = '<?php echo wp_login_url() ?>?log_in_from_id_token='+res.tokens.idToken.value;
+            });
+    }
+    else {
+        signIn.showSignInToGetTokens({
+            clientId: '<?php echo OKTA_WIDGET_CLIENT_ID ?>',
+            getAccessToken: false,
+            getIdToken: true,
+            scope: 'openid email',
+        });
+    }
 </script>

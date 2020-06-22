@@ -34,6 +34,7 @@ class OktaSignIn
 
           $this->env = array(
               'OKTA_BASE_URL' => OKTA_BASE_URL,
+              'OKTA_WIDGET_CLIENT_ID' => OKTA_WIDGET_CLIENT_ID,
               'OKTA_CLIENT_ID' => OKTA_CLIENT_ID,
               'OKTA_CLIENT_SECRET' => OKTA_CLIENT_SECRET,
               'OKTA_AUTH_SERVER_ID' => (defined('OKTA_AUTH_SERVER_ID') ? OKTA_AUTH_SERVER_ID : false)
@@ -62,10 +63,6 @@ class OktaSignIn
 
 
         add_action('init', array($this, 'startSessionAction'));
-    }
-
-    public static function generateState() {
-      return $_SESSION['okta_state'] = wp_generate_password(64, false);
     }
 
     public function activated() {
@@ -132,34 +129,6 @@ class OktaSignIn
             exit;
         }
 
-        if (isset($_GET['code'])) {
-            // If there is a code in the query string, look up the code at Okta to find out who logged in
-
-            // First verify that the state matches
-            if($_GET['state'] != $_SESSION['okta_state']) {
-              die('State error. Make sure cookies are enabled.');
-            }
-
-            // Authorization code flow
-            $payload = array(
-                'grant_type' => 'authorization_code',
-                'code' => $_GET['code'],
-                'redirect_uri' => wp_login_url(),
-                'client_id' => $this->env['OKTA_CLIENT_ID'],
-                'client_secret' => $this->env['OKTA_CLIENT_SECRET'],
-            );
-            $response = $this->httpPost($this->base_url . '/token', $payload);
-            $body = json_decode($response['body'], true);
-            if (isset($body['id_token'])) {
-                // We don't need to verify the JWT signature since it came from the HTTP response directly
-                list($jwtHeader, $jwtPayload, $jwtSignature) = explode( '.', $body['id_token'] );
-                $claims = json_decode(base64_decode($jwtPayload), true);
-                $this->logUserIntoWordPressFromEmail($claims['email'], $_GET['redirect_to']);
-            } else {
-                die('There was an error logging in: ' . $body['error_description']);
-            }
-        }
-
         // If there is no code in the query string, show the Okta sign-in widget
         $template = plugin_dir_path(__FILE__) . 'templates/sign-in-form.php';
         load_template($template);
@@ -183,12 +152,9 @@ class OktaSignIn
         }
         $claims = json_decode($response['body'], true);
         if (!$claims['active']) {
-            die("Okta reports that id_token is not active:" . $claims['error_description']);
+            die("Okta reports that id_token is not active or client authentication failed:" . $claims['error_description']);
         }
         /********************************************/
-
-        // error_log("Got claims:");
-        // error_log(print_r($claims, true));
 
         $this->logUserIntoWordPressFromEmail($claims['email'], $redirect_to);
     }
