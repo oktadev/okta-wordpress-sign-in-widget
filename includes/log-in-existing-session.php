@@ -1,21 +1,25 @@
-<script src="https://ok1static.oktacdn.com/assets/js/sdk/okta-auth-js/1.13.0/okta-auth-js.min.js" type="text/javascript"></script>
+<script src="https://global.oktacdn.com/okta-signin-widget/4.1.3/js/okta-sign-in.min.js" type="text/javascript"></script>
 <script>
-var authClient = new OktaAuth({
-  url: '<?php echo OKTA_BASE_URL ?>',
-  clientId: '<?php echo OKTA_CLIENT_ID ?>',
-  redirectUri: '<?php echo wp_login_url() ?>',
-  issuer: '<?php echo defined('OKTA_AUTH_SERVER_ID') ? (OKTA_BASE_URL . '/oauth2/' . OKTA_AUTH_SERVER_ID) : OKTA_BASE_URL ?>',
+var signIn = new OktaSignIn({
+    baseUrl: '<?php echo OKTA_BASE_URL ?>',
+    redirectUri: '<?php echo wp_login_url() ?>',
+    el: '#widget-container',
+    authParams: {
+        clientId: '<?php echo OKTA_WIDGET_CLIENT_ID ?>',
+        display: 'page',
+        issuer: '<?php echo defined('OKTA_AUTH_SERVER_ID') ? (OKTA_BASE_URL . '/oauth2/' . OKTA_AUTH_SERVER_ID) : OKTA_BASE_URL ?>'
+    }
 });
 
-authClient.session.exists()
+signIn.authClient.session.exists()
   .then(function(exists) {
-    if (exists) {
-      authClient.token.getWithoutPrompt({
-        responseType: ['id_token', 'token'],
+    if(exists) {
+      signIn.authClient.token.getWithoutPrompt({
+        responseType: ['id_token'],
         scopes: ['openid', 'email']
       })
       .then(function(tokens){
-        var url_to_redirect_to = '<?php echo wp_login_url() ?>' + '?log_in_from_id_token=' + tokens[0].idToken;
+        var url_to_redirect_to = '<?php echo wp_login_url() ?>' + '?log_in_from_id_token=' + tokens.tokens.idToken.value;
         window.location.href = url_to_redirect_to;
       });
    }
