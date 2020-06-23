@@ -112,16 +112,8 @@ class OktaSignIn
         }
 
         // When signing out of WordPress, tell the Okta JS library to log out of Okta as well
-        if (isset($_GET["action"])) {
-            if ($_GET["action"] === "logout") {
-                $user = wp_get_current_user();
-
-                wp_clear_auth_cookie();
-
-                $template = plugin_dir_path(__FILE__) . 'templates/sign-out.php';
-                load_template($template);
-                exit;
-            }
+        if (isset($_GET["action"]) && $_GET["action"] === "logout") {
+            $this->logUserOutOfOkta();
         }
 
         if (isset($_GET['log_in_from_id_token'])) {
@@ -129,8 +121,40 @@ class OktaSignIn
             exit;
         }
 
+        if($this->useWordpressLogin()) {
+            return;
+        }
+
         // If there is no code in the query string, show the Okta sign-in widget
         $template = plugin_dir_path(__FILE__) . 'templates/sign-in-form.php';
+        load_template($template);
+        exit;
+    }
+
+    private function useWordpressLogin() {
+        // TODO: add a setting to enable wordpress login
+
+        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] == 'true')
+            return true;
+
+        if(isset($_GET['action']) && $_GET['action'] == 'lostpassword')
+            return true;
+
+        if(isset($_GET['checkemail']))
+            return true;
+
+        if(isset($_POST['wp-submit']))
+            return true;
+
+        return false;
+    }
+
+    private function logUserOutOfOkta() {
+        $user = wp_get_current_user();
+
+        wp_clear_auth_cookie();
+
+        $template = plugin_dir_path(__FILE__) . 'templates/sign-out.php';
         load_template($template);
         exit;
     }
