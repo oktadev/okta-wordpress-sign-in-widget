@@ -11,8 +11,6 @@
 
     signIn.authClient.tokenManager.get('id_token')
     .then(function(token){
-    	console.log(token);
-    	console.log(token.idToken);
 		signIn.authClient.signOut({
 			idToken: token,
 			postLogoutRedirectUri: '<?php echo home_url() ?>'
