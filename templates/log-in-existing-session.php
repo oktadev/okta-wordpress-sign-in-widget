@@ -25,4 +25,3 @@ signIn.authClient.session.exists()
    }
   });
 </script>
-<?php

@@ -86,7 +86,7 @@ class OktaSignIn
         if (!is_user_logged_in()) {
             $this->startSessionAction();
             $_SESSION['redirect_to'] = $_SERVER['REQUEST_URI'];
-            include("includes/log-in-existing-session.php");
+            include("templates/log-in-existing-session.php");
         }
     }
 
