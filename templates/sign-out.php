@@ -1,13 +1,21 @@
-<script src="https://ok1static.oktacdn.com/assets/js/sdk/okta-auth-js/1.13.0/okta-auth-js.min.js" type="text/javascript"></script>
+<script src="https://global.oktacdn.com/okta-signin-widget/4.1.3/js/okta-sign-in.min.js" type="text/javascript"></script>
 <script>
-    var authClient = new OktaAuth({
-      url: '<?php echo OKTA_BASE_URL ?>',
-      clientId: '<?php echo OKTA_CLIENT_ID ?>',
-      issuer: '<?php echo OKTA_BASE_URL ?>/oauth2/<?php echo OKTA_AUTH_SERVER_ID ?>',
+    var signIn = new OktaSignIn({
+        baseUrl: '<?php echo OKTA_BASE_URL ?>',
+        authParams: {
+        	clientId: '<?php echo OKTA_WIDGET_CLIENT_ID ?>',
+            display: 'page',
+            issuer: '<?php echo defined('OKTA_AUTH_SERVER_ID') ? (OKTA_BASE_URL . '/oauth2/' . OKTA_AUTH_SERVER_ID) : OKTA_BASE_URL ?>'
+        }
     });
 
-    authClient.signOut()
-    .then(function() {
-        window.location = '<?php echo home_url() ?>';
+    signIn.authClient.tokenManager.get('id_token')
+    .then(function(token){
+    	console.log(token);
+    	console.log(token.idToken);
+		signIn.authClient.signOut({
+			idToken: token,
+			postLogoutRedirectUri: '<?php echo home_url() ?>'
+		});
     });
 </script>

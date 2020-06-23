@@ -13,13 +13,15 @@
         el: '#widget-container',
         authParams: {
             display: 'page',
+            issuer: '<?php echo defined('OKTA_AUTH_SERVER_ID') ? (OKTA_BASE_URL . '/oauth2/' . OKTA_AUTH_SERVER_ID) : OKTA_BASE_URL ?>'
         }
     });
     if(signIn.hasTokensInUrl()) {
         // Grab the auth code from the URL and exchange it for an ID token
         signIn.authClient.token.parseFromUrl()
             .then(function (res) {
-                // Redirect back here with the ID token in the URL. The backend will validate it and log the user in.
+                signIn.authClient.tokenManager.add('id_token', res.tokens.idToken);
+                // Redirect back to this page with the ID token in the URL. The backend will validate it and log the user in.
                 window.location = '<?php echo wp_login_url() ?>?log_in_from_id_token='+res.tokens.idToken.value;
             });
     }
@@ -28,7 +30,7 @@
             clientId: '<?php echo OKTA_WIDGET_CLIENT_ID ?>',
             getAccessToken: false,
             getIdToken: true,
-            scope: 'openid email',
+            scope: 'openid email'
         });
     }
 </script>
