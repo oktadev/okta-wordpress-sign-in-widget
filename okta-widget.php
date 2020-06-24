@@ -14,45 +14,18 @@ namespace Okta;
  * Domain Path: /languages
  */
 
+include plugin_dir_path(__FILE__).'/includes/okta-admin.php';
+
 class OktaSignIn
 {
+    private $OktaAdmin;
+    private $base_url;
 
     public function __construct()
     {
-        // This hook is run when the user first activates the plugin
-        register_activation_hook( __FILE__, array( $this, 'activated' ) );
+        $this->OktaAdmin = new OktaAdmin;
 
-        // TODO: Refactor this after adding support
-        //       for configuring this plugin via a settings page
-        if(file_exists(plugin_dir_path(__FILE__) . "env.php")) {
-          /*******************************/
-          // Load environment variables
-          include(plugin_dir_path(__FILE__) . "env.php");
-          // [jpf] FIXME: Add support for configuring this plugin via a settings page:
-          //              https://codex.wordpress.org/Creating_Options_Pages
-          /*******************************/
-
-          $this->env = array(
-              'OKTA_BASE_URL' => OKTA_BASE_URL,
-              'OKTA_WIDGET_CLIENT_ID' => OKTA_WIDGET_CLIENT_ID,
-              'OKTA_CLIENT_ID' => OKTA_CLIENT_ID,
-              'OKTA_CLIENT_SECRET' => OKTA_CLIENT_SECRET,
-              'OKTA_AUTH_SERVER_ID' => (defined('OKTA_AUTH_SERVER_ID') ? OKTA_AUTH_SERVER_ID : false)
-          );
-
-          if($this->env['OKTA_AUTH_SERVER_ID']) {
-                $this->base_url = sprintf(
-                    '%s/oauth2/%s/v1',
-                    $this->env['OKTA_BASE_URL'],
-                    $this->env['OKTA_AUTH_SERVER_ID']
-                );
-          } else {
-                $this->base_url = sprintf(
-                    '%s/oauth2/v1',
-                    $this->env['OKTA_BASE_URL']
-                );
-          }
-        }
+        $this->setBaseUrl();
 
         // https://developer.wordpress.org/reference/hooks/login_init/
         add_action('login_init', array($this, 'loginAction'));
@@ -61,17 +34,23 @@ class OktaSignIn
         // https://codex.wordpress.org/Plugin_API/Action_Reference/wp_head
         add_action('wp_head', array($this, 'addLogInExistingSessionAction'));
 
-
         add_action('init', array($this, 'startSessionAction'));
     }
 
-    public function activated() {
-      // TODO: remove this after adding support for configuring via settings page
-      // Check for the existence of env.php
-      if (!file_exists(plugin_dir_path(__FILE__) . "env.php")) {
-        deactivate_plugins( plugin_basename( __FILE__ ) );
-        wp_die( 'Please copy env.example.php to env.php and fill in your Okta application details, then activate this plugin again.' );
-      }
+    private function setBaseUrl()
+    {
+        if(get_option('okta-auth-server-id')) {
+            $this->base_url = sprintf(
+                '%s/oauth2/%s/v1',
+                get_option('okta-base-url'),
+                get_option('okta-auth-server-id')
+            );
+        } else {
+            $this->base_url = sprintf(
+                '%s/oauth2/v1',
+                get_option('okta-base-url')
+            );
+        }
     }
 
     public function startSessionAction()
@@ -131,20 +110,28 @@ class OktaSignIn
         exit;
     }
 
-    private function useWordpressLogin() {
-        // TODO: add a setting to enable wordpress login
-
-        if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] == 'true')
+    private function useWordpressLogin() 
+    {
+        // Always skip showing the Okta widget on POST requests
+        if($_SERVER['REQUEST_METHOD'] === 'POST')
             return true;
 
-        if(isset($_GET['action']) && $_GET['action'] == 'lostpassword')
+        // If the plugin isn't configured yet, don't show the Okta widget
+        if(!get_option('okta-base-url'))
             return true;
 
-        if(isset($_GET['checkemail']))
-            return true;
+        // null when plugin is not configured, "1"/"0" after
+        if(get_option('okta-allow-wordpress-login') === null || get_option('okta-allow-wordpress-login') === "1")
+        {
+            if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] == 'true')
+                return true;
 
-        if(isset($_POST['wp-submit']))
-            return true;
+            if(isset($_GET['action']) && $_GET['action'] == 'lostpassword')
+                return true;
+
+            if(isset($_GET['checkemail']))
+                return true;
+        }
 
         return false;
     }
@@ -165,8 +152,8 @@ class OktaSignIn
         // [jpf] TODO: Implement client-side id_token validation to speed up the verification process
         //             (~300ms for /introspect endpoint v. ~5ms for client-side validation)
         $payload = array(
-            'client_id' => $this->env['OKTA_CLIENT_ID'],
-            'client_secret' => $this->env['OKTA_CLIENT_SECRET'],
+            'client_id' => get_option('okta-client-id'),
+            'client_secret' => get_option('okta-client-secret'),
             'token' => $id_token,
             'token_type_hint' => 'id_token'
         );

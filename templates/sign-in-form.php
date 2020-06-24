@@ -17,17 +17,19 @@
 
 <div id="primary" class="content-area">
   <div id="widget-container"></div>
-  <div id="wordpress-login"><a href="<?php echo wp_login_url(); ?>?wordpress_login=true">Login via Wordpress</a></div>
+  <?php if(get_option('okta-allow-wordpress-login')): ?>
+      <div id="wordpress-login"><a href="<?php echo wp_login_url(); ?>?wordpress_login=true">Login via Wordpress</a></div>
+  <?php endif ?>
 </div>
 
 <script>
     var signIn = new OktaSignIn({
-        baseUrl: '<?php echo OKTA_BASE_URL ?>',
+        baseUrl: '<?php echo get_option('okta-base-url') ?>',
         redirectUri: '<?php echo wp_login_url() ?>',
         el: '#widget-container',
         authParams: {
             display: 'page',
-            issuer: '<?php echo defined('OKTA_AUTH_SERVER_ID') ? (OKTA_BASE_URL . '/oauth2/' . OKTA_AUTH_SERVER_ID) : OKTA_BASE_URL ?>'
+            issuer: '<?php echo get_option('okta-auth-server-id') ? (get_option('okta-base-url') . '/oauth2/' . get_option('okta-auth-server-id')) : get_option('okta-base-url') ?>'
         }
     });
     if(signIn.hasTokensInUrl()) {
@@ -42,7 +44,7 @@
     }
     else {
         signIn.showSignInToGetTokens({
-            clientId: '<?php echo OKTA_WIDGET_CLIENT_ID ?>',
+            clientId: '<?php echo get_option('okta-widget-client-id') ?>',
             getAccessToken: false,
             getIdToken: true,
             scope: 'openid email'
