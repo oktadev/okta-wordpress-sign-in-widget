@@ -33,7 +33,9 @@
         }
     });
     if(signIn.hasTokensInUrl()) {
-        document.getElementById('wordpress-login').remove();
+        if(document.getElementById('wordpress-login')) {
+            document.getElementById('wordpress-login').remove();
+        }
         // Grab the auth code from the URL and exchange it for an ID token
         signIn.authClient.token.parseFromUrl()
             .then(function (res) {
