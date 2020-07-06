@@ -55,7 +55,7 @@ class OktaSignIn
 
     public function startSessionAction()
     {
-        if (!session_id()) {
+        if (session_status() != PHP_SESSION_ACTIVE) {
             session_start();
         }
     }
