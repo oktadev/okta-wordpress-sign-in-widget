@@ -152,8 +152,7 @@ class OktaSignIn
         // [jpf] TODO: Implement client-side id_token validation to speed up the verification process
         //             (~300ms for /introspect endpoint v. ~5ms for client-side validation)
         $payload = array(
-            'client_id' => get_option('okta-client-id'),
-            'client_secret' => get_option('okta-client-secret'),
+            'client_id' => get_option('okta-widget-client-id'),
             'token' => $id_token,
             'token_type_hint' => 'id_token'
         );

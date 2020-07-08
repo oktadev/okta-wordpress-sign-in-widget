@@ -43,30 +43,6 @@ class OktaAdmin{
             'okta-sign-in-widget-options-section'
         );
 
-        register_setting('okta-sign-in-widget', 'okta-client-id', array(
-            'type' => 'string',
-            'show_in_rest' => false,
-        ));
-        add_settings_field(
-            'okta-client-id',
-            'Client ID',
-            function() { $this->optionsPageTextInputAction('okta-client-id', 'text', null, 'Register a "Service" app in Okta and provide its Client ID.'); },
-            'okta-sign-in-widget',
-            'okta-sign-in-widget-options-section'
-        );
-
-        register_setting('okta-sign-in-widget', 'okta-client-secret', array(
-            'type' => 'string',
-            'show_in_rest' => false,
-        ));
-        add_settings_field(
-            'okta-client-secret',
-            'Client Secret',
-            function() { $this->optionsPageTextInputAction('okta-client-secret', 'password', null, 'Provide the client secret for the "Service" app.'); },
-            'okta-sign-in-widget',
-            'okta-sign-in-widget-options-section'
-        );
-
         register_setting('okta-sign-in-widget', 'okta-auth-server-id', array(
             'type' => 'string',
             'show_in_rest' => false,
