@@ -24,12 +24,12 @@
 
 <script>
     var signIn = new OktaSignIn({
-        baseUrl: '<?php echo get_option('okta-base-url') ?>',
+        baseUrl: '<?php echo parse_url($issuer = get_option('okta-issuer-url'), PHP_URL_SCHEME).'://'.parse_url($issuer, PHP_URL_HOST) ?>',
         redirectUri: '<?php echo wp_login_url() ?>',
         el: '#widget-container',
         authParams: {
             display: 'page',
-            issuer: '<?php echo get_option('okta-auth-server-id') ? (get_option('okta-base-url') . '/oauth2/' . get_option('okta-auth-server-id')) : get_option('okta-base-url') ?>'
+            issuer: '<?php echo get_option('okta-issuer-url') ?>'
         }
     });
     if(signIn.hasTokensInUrl()) {

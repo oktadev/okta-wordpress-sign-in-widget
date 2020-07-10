@@ -19,14 +19,14 @@ class OktaAdmin{
             'okta-sign-in-widget'
         );
 
-        register_setting('okta-sign-in-widget', 'okta-base-url', array(
+        register_setting('okta-sign-in-widget', 'okta-issuer-url', array(
             'type' => 'string',
             'show_in_rest' => false,
         ));
         add_settings_field(
-            'okta-base-url',
-            'Okta Base URL',
-            function() { $this->optionsPageTextInputAction('okta-base-url', 'text', 'e.g. https://youroktadomain.okta.com'); },
+            'okta-issuer-url',
+            'Okta Issuer URI',
+            function() { $this->optionsPageTextInputAction('okta-issuer-url', 'text', 'e.g. https://youroktadomain.okta.com/oauth2/default', 'Find your Issuer URI in the Admin console under <b>Security -> API</b>, or in the Developer console under <b>API -> Authorization Servers</b>'); },
             'okta-sign-in-widget',
             'okta-sign-in-widget-options-section'
         );
@@ -39,18 +39,6 @@ class OktaAdmin{
             'okta-widget-client-id',
             'Sign-In Widget Client ID',
             function() { $this->optionsPageTextInputAction('okta-widget-client-id', 'text', null, 'Register a "SPA" app in Okta and provide its Client ID here. Set the Login redirect URI in Okta to <code>'.wp_login_url().'</code>, and set the Logout redirect URI to <code>'.home_url().'</code>'); },
-            'okta-sign-in-widget',
-            'okta-sign-in-widget-options-section'
-        );
-
-        register_setting('okta-sign-in-widget', 'okta-auth-server-id', array(
-            'type' => 'string',
-            'show_in_rest' => false,
-        ));
-        add_settings_field(
-            'okta-auth-server-id',
-            'Auth Server ID',
-            function() { $this->optionsPageTextInputAction('okta-auth-server-id', 'text', 'default', 'If you\'re using API Access Management or have an Okta Developer account, define the auth server ID, e.g. "default".'); },
             'okta-sign-in-widget',
             'okta-sign-in-widget-options-section'
         );
