@@ -3,6 +3,10 @@
 <link href="https://global.oktacdn.com/okta-signin-widget/4.1.3/css/okta-sign-in.min.css" type="text/css" rel="stylesheet"/>
 
 <style type="text/css">
+    body {
+        font-family: montserrat,Arial,Helvetica,sans-serif;        
+    }
+
     #wordpress-login{
         text-align: center;
     }
@@ -11,9 +15,26 @@
         font-size:10px;
         color: #999;
         text-decoration:none;
-        font-family: montserrat,Arial,Helvetica,sans-serif;
+    }
+
+    #error {
+        max-width: 500px;
+        margin: 20px auto;
+        padding: 20px;
+        border: 1px #d93934 solid;
+        border-radius: 6px;
+    }
+    #error h2 {
+        color: #d93934;
     }
 </style>
+
+<?php if(isset($_GET['error'])): ?>
+<div id="error">
+    <h2>Error: <?php echo htmlspecialchars($_GET['error']) ?></h2>
+    <p><?php echo htmlspecialchars($_GET['error_description']) ?></p>
+</div>
+<?php endif ?>
 
 <div id="primary" class="content-area">
   <div id="widget-container"></div>
