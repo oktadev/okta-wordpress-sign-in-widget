@@ -5,7 +5,7 @@ namespace Okta;
  * Plugin Name: Okta Sign-In Widget
  * Plugin URI: https://github.com/oktadeveloper/okta-wordpress-sign-in-widget
  * Description: Log in to your site using the Okta Sign-In Widget
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: Aaron Parecki, Tom Smith, Nico Triballier, Joël Franusic
  * Author URI: https://developer.okta.com/
  * License: MIT
