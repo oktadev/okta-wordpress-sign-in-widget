@@ -19,7 +19,8 @@ include plugin_dir_path(__FILE__).'/includes/okta-admin.php';
 class OktaSignIn
 {
     private $OktaAdmin;
-    private $base_url;
+    private $base_url = false;
+    private $introspection_endpoint = false;
 
     public function __construct()
     {
@@ -39,18 +40,30 @@ class OktaSignIn
 
     private function setBaseUrl()
     {
-        if(get_option('okta-auth-server-id')) {
-            $this->base_url = sprintf(
-                '%s/oauth2/%s/v1',
-                get_option('okta-base-url'),
-                get_option('okta-auth-server-id')
-            );
-        } else {
-            $this->base_url = sprintf(
-                '%s/oauth2/v1',
-                get_option('okta-base-url')
-            );
+        if($issuer = get_option('okta-issuer-url')) {
+            $this->base_url = parse_url($issuer, PHP_URL_SCHEME).'://'.parse_url($issuer, PHP_URL_HOST);
         }
+    }
+
+    private function getIntrospectionEndpoint() {
+        if($this->introspection_endpoint)
+            return $this->introspection_endpoint;
+
+        if(!$this->base_url)
+            return false;
+
+        $response = wp_remote_get(get_option('okta-issuer-url').'/.well-known/openid-configuration');
+        if(!$response)
+            return false;
+
+        $metadata = json_decode($response['body'], true);
+        if(!$metadata)
+            return false;
+
+        if(!isset($metadata['introspection_endpoint']))
+            return false;
+
+        return $this->introspection_endpoint = $metadata['introspection_endpoint'];
     }
 
     public function startSessionAction()
@@ -117,7 +130,7 @@ class OktaSignIn
             return true;
 
         // If the plugin isn't configured yet, don't show the Okta widget
-        if(!get_option('okta-base-url'))
+        if(!$this->base_url)
             return true;
 
         // null when plugin is not configured, "1"/"0" after
@@ -148,6 +161,11 @@ class OktaSignIn
 
     private function logUserIntoWordPressWithIDToken($id_token, $redirect_to)
     {
+        $introspection_endpoint = $this->getIntrospectionEndpoint();
+
+        if(!$this->introspection_endpoint)
+            die("The plugin is not configured properly. Please double check the Issuer URI in the configuration.");
+
         /********************************************/
         // [jpf] TODO: Implement client-side id_token validation to speed up the verification process
         //             (~300ms for /introspect endpoint v. ~5ms for client-side validation)
@@ -156,7 +174,7 @@ class OktaSignIn
             'token' => $id_token,
             'token_type_hint' => 'id_token'
         );
-        $response = $this->httpPost($this->base_url . '/introspect', $payload);
+        $response = $this->httpPost($this->introspection_endpoint, $payload);
         if ($response === false) {
             die("Invalid id_token received from Okta");
         }
