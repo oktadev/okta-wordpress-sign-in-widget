@@ -70,7 +70,7 @@
             clientId: '<?php echo get_option('okta-widget-client-id') ?>',
             getAccessToken: false,
             getIdToken: true,
-            scope: 'openid email'
+            scope: '<?php echo apply_filters( 'okta_widget_token_scope', 'openid email') ?>'
         });
     }
 </script>
