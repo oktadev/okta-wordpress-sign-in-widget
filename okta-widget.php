@@ -183,12 +183,14 @@ class OktaSignIn
             die("Okta reports that id_token is not active or client authentication failed:" . $claims['error_description']);
         }
         /********************************************/
-
-        $this->logUserIntoWordPressFromEmail($claims['email'], $redirect_to);
+        
+        $this->logUserIntoWordPressFromEmail($claims, $redirect_to);
     }
 
-    private function logUserIntoWordPressFromEmail($email, $redirect_to)
+    private function logUserIntoWordPressFromEmail($claims, $redirect_to)
     {
+        $email = $claims['email'];
+
         // Find or create the WordPress user for this email address
         $user = get_user_by('email', $email);
         if (!$user) {
@@ -198,6 +200,8 @@ class OktaSignIn
         } else {
             $user_id = $user->ID;
         }
+
+        do_action('okta_widget_before_login', $claims, $user);
 
         // Actually log the user in now
         wp_set_current_user($user_id);
