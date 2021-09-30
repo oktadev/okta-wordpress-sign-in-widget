@@ -1,28 +1,17 @@
 <?php include plugin_dir_path(__FILE__).'/../includes/widget.php'; ?>
 
 <script>
-var signIn = new OktaSignIn({
-    baseUrl: '<?php echo parse_url($issuer = get_option('okta-issuer-url'), PHP_URL_SCHEME).'://'.parse_url($issuer, PHP_URL_HOST) ?>',
-    redirectUri: '<?php echo wp_login_url() ?>',
-    el: '#widget-container',
-    authParams: {
-        clientId: '<?php echo get_option('okta-widget-client-id') ?>',
-        display: 'page',
-        issuer: '<?php echo get_option('okta-issuer-url') ?>'
-    }
-});
+<?php include plugin_dir_path(__FILE__).'/../includes/initialize-widget.js.php'; ?>
 
-signIn.authClient.session.exists()
+oktaSignIn.authClient.session.exists()
   .then(function(exists) {
     if(exists) {
-      signIn.authClient.token.getWithoutPrompt({
+      oktaSignIn.authClient.token.getWithoutPrompt({
         responseType: ['id_token'],
-        scopes: ['openid', 'email']
       })
       .then(function(tokens){
-        var url_to_redirect_to = '<?php echo wp_login_url() ?>' + '?log_in_from_id_token=' + tokens.tokens.idToken.value;
-        window.location.href = url_to_redirect_to;
+        window.location.href = '<?php echo wp_login_url() ?>' + '?log_in_from_id_token=' + tokens.tokens.idToken.value;
       });
-   }
+    }
   });
 </script>

@@ -42,16 +42,7 @@
 </div>
 
 <script>
-    var oktaSignIn = new OktaSignIn({
-        baseUrl: '<?php echo parse_url($issuer = get_option('okta-issuer-url'), PHP_URL_SCHEME).'://'.parse_url($issuer, PHP_URL_HOST) ?>',
-        redirectUri: '<?php echo wp_login_url() ?>',
-        clientId: '<?php echo get_option('okta-widget-client-id') ?>',
-        scopes: '<?php echo apply_filters( 'okta_widget_token_scope', 'openid email') ?>'.split(' '),
-        authParams: {
-            display: 'page',
-            issuer: '<?php echo get_option('okta-issuer-url') ?>'
-        }
-    });
+    <?php include plugin_dir_path(__FILE__).'/../includes/initialize-widget.js.php'; ?>
 
     oktaSignIn.authClient.token.getUserInfo().then(function(user) {
       console.log("Already logged in");
@@ -63,7 +54,8 @@
         el: '#okta-login-container'
       }).then(function(tokens) {
         oktaSignIn.authClient.tokenManager.setTokens(tokens);
-        oktaSignIn.remove();
+
+        oktaSignIn.remove(); // Remove the widget from the DOM
 
         const idToken = tokens.idToken;
         window.location = '<?php echo wp_login_url() ?>?log_in_from_id_token='+idToken.value;
