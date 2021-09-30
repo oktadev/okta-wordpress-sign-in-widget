@@ -1,4 +1,5 @@
-<script src="https://global.oktacdn.com/okta-signin-widget/4.1.3/js/okta-sign-in.min.js" type="text/javascript"></script>
+<?php include plugin_dir_path(__FILE__).'/../includes/widget.php'; ?>
+
 <script>
 var signIn = new OktaSignIn({
     baseUrl: '<?php echo parse_url($issuer = get_option('okta-issuer-url'), PHP_URL_SCHEME).'://'.parse_url($issuer, PHP_URL_HOST) ?>',

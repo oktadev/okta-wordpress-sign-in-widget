@@ -1,6 +1,4 @@
-<!-- load the Okta sign-in widget-->
-<script src="https://global.oktacdn.com/okta-signin-widget/5.9.4/js/okta-sign-in.min.js" type="text/javascript"></script>
-<link href="https://global.oktacdn.com/okta-signin-widget/5.9.4/css/okta-sign-in.min.css" type="text/css" rel="stylesheet"/>
+<?php include plugin_dir_path(__FILE__).'/../includes/widget.php'; ?>
 
 <style type="text/css">
     body {
