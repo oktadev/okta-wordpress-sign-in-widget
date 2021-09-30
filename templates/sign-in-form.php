@@ -1,6 +1,6 @@
 <!-- load the Okta sign-in widget-->
-<script src="https://global.oktacdn.com/okta-signin-widget/4.1.3/js/okta-sign-in.min.js" type="text/javascript"></script>
-<link href="https://global.oktacdn.com/okta-signin-widget/4.1.3/css/okta-sign-in.min.css" type="text/css" rel="stylesheet"/>
+<script src="https://global.oktacdn.com/okta-signin-widget/5.9.4/js/okta-sign-in.min.js" type="text/javascript"></script>
+<link href="https://global.oktacdn.com/okta-signin-widget/5.9.4/css/okta-sign-in.min.css" type="text/css" rel="stylesheet"/>
 
 <style type="text/css">
     body {
@@ -37,40 +37,41 @@
 <?php endif ?>
 
 <div id="primary" class="content-area">
-  <div id="widget-container"></div>
+  <div id="okta-login-container"></div>
   <?php if(get_option('okta-allow-wordpress-login')): ?>
       <div id="wordpress-login"><a href="<?php echo wp_login_url(); ?>?wordpress_login=true">Login via Wordpress</a></div>
   <?php endif ?>
 </div>
 
 <script>
-    var signIn = new OktaSignIn({
+    var oktaSignIn = new OktaSignIn({
         baseUrl: '<?php echo parse_url($issuer = get_option('okta-issuer-url'), PHP_URL_SCHEME).'://'.parse_url($issuer, PHP_URL_HOST) ?>',
         redirectUri: '<?php echo wp_login_url() ?>',
-        el: '#widget-container',
+        clientId: '<?php echo get_option('okta-widget-client-id') ?>',
+        scopes: '<?php echo apply_filters( 'okta_widget_token_scope', 'openid email') ?>'.split(' '),
         authParams: {
             display: 'page',
             issuer: '<?php echo get_option('okta-issuer-url') ?>'
         }
     });
-    if(signIn.hasTokensInUrl()) {
-        if(document.getElementById('wordpress-login')) {
-            document.getElementById('wordpress-login').remove();
-        }
-        // Grab the auth code from the URL and exchange it for an ID token
-        signIn.authClient.token.parseFromUrl()
-            .then(function (res) {
-                signIn.authClient.tokenManager.add('id_token', res.tokens.idToken);
-                // Redirect back to this page with the ID token in the URL. The backend will validate it and log the user in.
-                window.location = '<?php echo wp_login_url() ?>?log_in_from_id_token='+res.tokens.idToken.value;
-            });
-    }
-    else {
-        signIn.showSignInToGetTokens({
-            clientId: '<?php echo get_option('okta-widget-client-id') ?>',
-            getAccessToken: false,
-            getIdToken: true,
-            scope: '<?php echo apply_filters( 'okta_widget_token_scope', 'openid email') ?>'
-        });
-    }
+
+    oktaSignIn.authClient.token.getUserInfo().then(function(user) {
+      console.log("Already logged in");
+      oktaSignIn.authClient.tokenManager.get('idToken').then(function(idToken){
+        window.location = '<?php echo wp_login_url() ?>?log_in_from_id_token='+idToken.value;
+      });
+    }, function(error) {
+      oktaSignIn.showSignInToGetTokens({
+        el: '#okta-login-container'
+      }).then(function(tokens) {
+        oktaSignIn.authClient.tokenManager.setTokens(tokens);
+        oktaSignIn.remove();
+
+        const idToken = tokens.idToken;
+        window.location = '<?php echo wp_login_url() ?>?log_in_from_id_token='+idToken.value;
+
+      }).catch(function(err) {
+        console.error(err);
+      });
+    });
 </script>
