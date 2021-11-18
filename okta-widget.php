@@ -12,6 +12,7 @@ namespace Okta;
  * License URI: http://opensource.org/licenses/MIT
  * Text Domain: okta
  * Domain Path: /languages
+ * Update URI: false
  */
 
 include plugin_dir_path(__FILE__).'/includes/okta-admin.php';
