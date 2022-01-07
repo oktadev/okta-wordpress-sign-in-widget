@@ -54,6 +54,82 @@ class OktaAdmin{
             'okta-sign-in-widget',
             'okta-sign-in-widget-options-section'
         );
+
+        register_setting('okta-sign-in-widget', 'okta-allow-self-registration', array(
+            'type' => 'boolean',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-allow-self-registration',
+            'Display the registration section in the primary auth page',
+            function() { $this->optionsPageCheckboxInputAction('okta-allow-self-registration', 'checkbox', 'Check this to allow he registration section in the primary auth page.'); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+
+        register_setting('okta-sign-in-widget', 'okta-login-logo-url', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-login-logo-url',
+            'Login page Logo url',
+            function() { $this->optionsPageTextInputAction('okta-login-logo-url', 'text', 'e.g. https://youroktadomain.okta.com/oauth2/default', 'https://mysite.com/logo.php'); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+
+        register_setting('okta-sign-in-widget', 'okta-login-css', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-login-css',
+            'Login page custom Style',
+            function() { $this->optionsPageTextInputAction('okta-login-css', 'text', 'e.g. #okta-sign-in.auth-container .okta-sign-in-header {
+                background-color: #000;
+            }', '#okta-sign-in.auth-container .okta-sign-in-header {
+                background-color: #000;
+            }'); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+
+        register_setting('okta-sign-in-widget', 'okta-custom-login-buttons', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-custom-login-buttons',
+            'Custom Login Buttons',
+            function() { $this->optionsPageTextInputAction('okta-custom-login-buttons', 'text', "Login buttons array", "Add button array text eg. {title: 'Alt Login',className: 'btn-cgdSSOAuth',click: function() {window.location.href = '/?saml_sso';}}"); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+
+        register_setting('okta-sign-in-widget', 'okta-group', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-group',
+            'Okta Source Group',
+            function() { $this->optionsPageTextInputAction('okta-group', 'text', "Okta Source Group", ""); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
+
+        register_setting('okta-sign-in-widget', 'okta-wp-group', array(
+            'type' => 'string',
+            'show_in_rest' => false,
+        ));
+        add_settings_field(
+            'okta-wp-group',
+            'Okta WP Destination Group',
+            function() { $this->optionsPageTextInputAction('okta-wp-group', 'text', "Okta WP Destination Group", ""); },
+            'okta-sign-in-widget',
+            'okta-sign-in-widget-options-section'
+        );
     }
 
     public function optionsMenuAction() {

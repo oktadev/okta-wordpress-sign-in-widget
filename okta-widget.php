@@ -1,11 +1,12 @@
 <?php
+
 namespace Okta;
 
 /**
  * Plugin Name: Okta Sign-In Widget
  * Plugin URI: https://github.com/oktadeveloper/okta-wordpress-sign-in-widget
  * Description: Log in to your site using the Okta Sign-In Widget
- * Version: 0.3.0
+ * Version: 0.4.0
  * Author: Aaron Parecki, Tom Smith, Nico Triballier, Joël Franusic
  * Author URI: https://developer.okta.com/
  * License: MIT
@@ -15,13 +16,14 @@ namespace Okta;
  * Update URI: false
  */
 
-include plugin_dir_path(__FILE__).'/includes/okta-admin.php';
+include plugin_dir_path(__FILE__) . '/includes/okta-admin.php';
 
 class OktaSignIn
 {
     private $OktaAdmin;
     private $base_url = false;
     private $introspection_endpoint = false;
+    private $userinfo_endpoint = false;
 
     public function __construct()
     {
@@ -41,30 +43,57 @@ class OktaSignIn
 
     private function setBaseUrl()
     {
-        if($issuer = get_option('okta-issuer-url')) {
-            $this->base_url = parse_url($issuer, PHP_URL_SCHEME).'://'.parse_url($issuer, PHP_URL_HOST);
+        if ($issuer = get_option('okta-issuer-url')) {
+            $this->base_url = parse_url($issuer, PHP_URL_SCHEME) . '://' . parse_url($issuer, PHP_URL_HOST);
         }
     }
 
-    private function getIntrospectionEndpoint() {
-        if($this->introspection_endpoint)
+    private function getIntrospectionEndpoint()
+    {
+        if ($this->introspection_endpoint)
             return $this->introspection_endpoint;
 
-        if(!$this->base_url)
+        if (!$this->base_url)
             return false;
 
-        $response = wp_remote_get(get_option('okta-issuer-url').'/.well-known/openid-configuration');
-        if(!$response)
+        $response = wp_remote_get(get_option('okta-issuer-url') . '/.well-known/openid-configuration');
+
+        if (!$response) {
             return false;
+        }
 
         $metadata = json_decode($response['body'], true);
-        if(!$metadata)
+        if (!$metadata)
             return false;
 
-        if(!isset($metadata['introspection_endpoint']))
+        if (!isset($metadata['introspection_endpoint']))
             return false;
 
         return $this->introspection_endpoint = $metadata['introspection_endpoint'];
+    }
+
+    private function getUserInfoEndpoint()
+    {
+        if ($this->userinfo_endpoint)
+            return $this->userinfo_endpoint;
+
+        if (!$this->base_url)
+            return false;
+
+        $response = wp_remote_get(get_option('okta-issuer-url') . '/.well-known/openid-configuration');
+
+        if (!$response) {
+            return false;
+        }
+
+        $metadata = json_decode($response['body'], true);
+        if (!$metadata)
+            return false;
+
+        if (!isset($metadata['userinfo_endpoint']))
+            return false;
+
+        return $this->userinfo_endpoint = $metadata['userinfo_endpoint'];
     }
 
     public function startSessionAction()
@@ -114,7 +143,7 @@ class OktaSignIn
             exit;
         }
 
-        if($this->useWordpressLogin()) {
+        if ($this->useWordpressLogin()) {
             return;
         }
 
@@ -124,33 +153,33 @@ class OktaSignIn
         exit;
     }
 
-    private function useWordpressLogin() 
+    private function useWordpressLogin()
     {
         // Always skip showing the Okta widget on POST requests
-        if($_SERVER['REQUEST_METHOD'] === 'POST')
+        if ($_SERVER['REQUEST_METHOD'] === 'POST')
             return true;
 
         // If the plugin isn't configured yet, don't show the Okta widget
-        if(!$this->base_url)
+        if (!$this->base_url)
             return true;
 
         // null when plugin is not configured, "1"/"0" after
-        if(get_option('okta-allow-wordpress-login') === null || get_option('okta-allow-wordpress-login') === "1")
-        {
-            if(isset($_GET['wordpress_login']) && $_GET['wordpress_login'] == 'true')
+        if (get_option('okta-allow-wordpress-login') === null || get_option('okta-allow-wordpress-login') === "1") {
+            if (isset($_GET['wordpress_login']) && $_GET['wordpress_login'] == 'true')
                 return true;
 
-            if(isset($_GET['action']) && $_GET['action'] == 'lostpassword')
+            if (isset($_GET['action']) && $_GET['action'] == 'lostpassword')
                 return true;
 
-            if(isset($_GET['checkemail']))
+            if (isset($_GET['checkemail']))
                 return true;
         }
 
         return false;
     }
 
-    private function logUserOutOfOkta() {
+    private function logUserOutOfOkta()
+    {
         $user = wp_get_current_user();
 
         wp_clear_auth_cookie();
@@ -164,7 +193,7 @@ class OktaSignIn
     {
         $introspection_endpoint = $this->getIntrospectionEndpoint();
 
-        if(!$this->introspection_endpoint)
+        if (!$this->introspection_endpoint)
             die("The plugin is not configured properly. Please double check the Issuer URI in the configuration.");
 
         /********************************************/
@@ -173,18 +202,21 @@ class OktaSignIn
         $payload = array(
             'client_id' => get_option('okta-widget-client-id'),
             'token' => $id_token,
-            'token_type_hint' => 'id_token'
+            'token_type_hint' => 'id_token',
         );
+
         $response = $this->httpPost($this->introspection_endpoint, $payload);
         if ($response === false) {
             die("Invalid id_token received from Okta");
         }
+
         $claims = json_decode($response['body'], true);
+
         if (!$claims['active']) {
             die("Okta reports that id_token is not active or client authentication failed:" . $claims['error_description']);
         }
         /********************************************/
-        
+
         $this->logUserIntoWordPressFromEmail($claims, $redirect_to);
     }
 
@@ -200,6 +232,43 @@ class OktaSignIn
             $user = get_user_by('id', $user_id);
         } else {
             $user_id = $user->ID;
+        }
+
+
+        //print_r($claims);
+
+        if($claims['okta_groups']){
+            echo "Groups<br/>";
+            $update = 0;
+            print_r($claims['okta_groups']);
+            foreach($claims['okta_groups'] as $group){
+                if($group == get_option('okta-group')){
+                    $update = 1;
+                    $user->set_role(get_option('okta-wp-group'));
+                }
+            }
+            if($update == 0){
+                $user->set_role(get_option('default_role'));
+            }
+        }
+
+        if ($_GET['given_name']) {
+            $user_id = wp_update_user(
+                [
+                    'ID'       => $user_id,
+                    'first_name' => $_GET['given_name'],
+                    'nickname' => $_GET['given_name'],
+                    'display_name' => $_GET['given_name']
+                ]
+            );
+        }
+        if ($_GET['family_name']) {
+            $user_id = wp_update_user(
+                [
+                    'ID'       => $user_id,
+                    'last_name' => $_GET['family_name']
+                ]
+            );
         }
 
         do_action('okta_widget_before_login', $claims, $user);
