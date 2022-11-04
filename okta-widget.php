@@ -70,7 +70,10 @@ class OktaSignIn
     public function startSessionAction()
     {
         if (session_status() != PHP_SESSION_ACTIVE) {
-            session_start();
+            session_start([
+                    'read_and_close' => true,
+                ]
+            );
         }
     }
 
