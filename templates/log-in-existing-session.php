@@ -10,7 +10,7 @@ oktaSignIn.authClient.session.exists()
         responseType: ['id_token'],
       })
       .then(function(tokens){
-        window.location.href = '<?php echo wp_login_url() ?>' + '?log_in_from_id_token=' + tokens.tokens.idToken.value;
+        window.location.href = '<?php echo wp_login_url() ?>' + '?log_in_from_id_token=' + tokens.tokens.idToken.idToken;
       });
     }
   });

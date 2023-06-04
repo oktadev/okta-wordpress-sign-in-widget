@@ -1,3 +1,12 @@
+0.4.0
+Added ability to add custom login css
+Added ability to enable self registration at the login window
+Added ability to add custom login buttons
+Added ability to add custom login image
+Added ability to map 1 OKTA group to a WP role
+Updated Sign in widget version
+
+
 	Cleanup with pbcbf
 	Change style to PSR2
 	Automatically log users in if they have an Okta session already
